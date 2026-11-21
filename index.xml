@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+    <channel>
+      <title>FiniteFields</title>
+      <link>https://mathstruct.org/FiniteFields</link>
+      <description>Last 10 notes on FiniteFields</description>
+      <generator>Quartz -- quartz.jzhao.xyz</generator>
+      <item>
+    <title>Backlog</title>
+    <link>https://mathstruct.org/FiniteFields/Project/Backlog</link>
+    <guid>https://mathstruct.org/FiniteFields/Project/Backlog</guid>
+    <description><![CDATA[ overview Planned work, by section, and the ledger of open sorrys. A row moves to Done with the commit that completes it. ]]></description>
+    <pubDate>Sat, 21 Nov 2026 19:42:04 GMT</pubDate>
+  </item><item>
+    <title>Decisions</title>
+    <link>https://mathstruct.org/FiniteFields/Project/Decisions</link>
+    <guid>https://mathstruct.org/FiniteFields/Project/Decisions</guid>
+    <description><![CDATA[  ADR-0001 Use MathStruct Quartz ADR-0002 Reuse mathlib ADR-0003 Keep Julia and Lean in one repository ADR-0004 Nimbers as the default representation of GF(2^n) (partly superseded by ADR-0005) ADR-0005 Rank encoding of GF(2^n) in Conway’s On2 Add a dated or numbered ADR when a choice affects architec... ]]></description>
+    <pubDate>Sat, 21 Nov 2026 19:42:04 GMT</pubDate>
+  </item><item>
+    <title>ADR-0001 Use MathStruct Quartz</title>
+    <link>https://mathstruct.org/FiniteFields/Project/Decisions/ADR-0001-Use-MathStruct-Quartz</link>
+    <guid>https://mathstruct.org/FiniteFields/Project/Decisions/ADR-0001-Use-MathStruct-Quartz</guid>
+    <description><![CDATA[ ADR-0001: Use MathStruct Quartz Status: accepted Context The project needs a browsable Obsidian vault with mathematical documentation and TikZ diagrams. ]]></description>
+    <pubDate>Sat, 21 Nov 2026 19:42:04 GMT</pubDate>
+  </item><item>
+    <title>ADR-0002 Reuse mathlib</title>
+    <link>https://mathstruct.org/FiniteFields/Project/Decisions/ADR-0002-Reuse-mathlib</link>
+    <guid>https://mathstruct.org/FiniteFields/Project/Decisions/ADR-0002-Reuse-mathlib</guid>
+    <description><![CDATA[ ADR-0002: Reuse mathlib Status: accepted Context Lean is intended to state and prove the project’s mathematics, but finite-field constructions and theorems may already exist in mathlib. ]]></description>
+    <pubDate>Sat, 21 Nov 2026 19:42:04 GMT</pubDate>
+  </item><item>
+    <title>ADR-0003 Keep Julia and Lean in one repository</title>
+    <link>https://mathstruct.org/FiniteFields/Project/Decisions/ADR-0003-Keep-Julia-and-Lean-in-one-repository</link>
+    <guid>https://mathstruct.org/FiniteFields/Project/Decisions/ADR-0003-Keep-Julia-and-Lean-in-one-repository</guid>
+    <description><![CDATA[ ADR-0003: Keep Julia and Lean in one repository Status: accepted Context Julia is the executable library and Lean is its formal specification/proof environment. ]]></description>
+    <pubDate>Sat, 21 Nov 2026 19:42:04 GMT</pubDate>
+  </item><item>
+    <title>ADR-0004 Nimbers as the default representation of GF(2^n)</title>
+    <link>https://mathstruct.org/FiniteFields/Project/Decisions/ADR-0004-Nimbers-as-the-default-representation-of-GF(2%5En)</link>
+    <guid>https://mathstruct.org/FiniteFields/Project/Decisions/ADR-0004-Nimbers-as-the-default-representation-of-GF(2%5En)</guid>
+    <description><![CDATA[ design characteristic-2 Status: accepted (2026-11-19, maintainer); the part “Conway polynomials … the default for every other n” is superseded by ADR-0005 Rank encoding of GF(2^n) in Conway’s On2 (2026-11-21). ]]></description>
+    <pubDate>Sat, 21 Nov 2026 19:42:04 GMT</pubDate>
+  </item><item>
+    <title>ADR-0005 Rank encoding of GF(2^n) in Conway&#039;s On2</title>
+    <link>https://mathstruct.org/FiniteFields/Project/Decisions/ADR-0005-Rank-encoding-of-GF(2%5En)-in-Conway's-On2</link>
+    <guid>https://mathstruct.org/FiniteFields/Project/Decisions/ADR-0005-Rank-encoding-of-GF(2%5En)-in-Conway's-On2</guid>
+    <description><![CDATA[ design characteristic-2 categorical Status: accepted (2026-11-21, maintainer: “Approve ADR-0005 and R1”). ]]></description>
+    <pubDate>Sat, 21 Nov 2026 19:42:04 GMT</pubDate>
+  </item><item>
+    <title>Lean and mathlib</title>
+    <link>https://mathstruct.org/FiniteFields/Project/Lean-and-mathlib</link>
+    <guid>https://mathstruct.org/FiniteFields/Project/Lean-and-mathlib</guid>
+    <description><![CDATA[ Lean files live under lean/; lean/lean-toolchain and the mathlib release in lakefile.lean are intentionally aligned, and so is every other Lean dependency (below). ]]></description>
+    <pubDate>Sat, 21 Nov 2026 19:42:04 GMT</pubDate>
+  </item><item>
+    <title>Problems</title>
+    <link>https://mathstruct.org/FiniteFields/Project/Problems</link>
+    <guid>https://mathstruct.org/FiniteFields/Project/Problems</guid>
+    <description><![CDATA[ Record each discovered defect with an identifier, a minimal reproduction, expected and actual behavior, and links to the affected specification and code. ]]></description>
+    <pubDate>Sat, 21 Nov 2026 19:42:04 GMT</pubDate>
+  </item><item>
+    <title>Status</title>
+    <link>https://mathstruct.org/FiniteFields/Project/Status</link>
+    <guid>https://mathstruct.org/FiniteFields/Project/Status</guid>
+    <description><![CDATA[ overview Handoff for the next session: where the work stands, what is next, and what is open. ]]></description>
+    <pubDate>Sat, 21 Nov 2026 19:42:04 GMT</pubDate>
+  </item>
+    </channel>
+  </rss>
