@@ -38,7 +38,8 @@ starting a backlog section the maintainer has not approved.
   with `SizeUnknown` from GF(2^64) on (`length` throws `OverflowError`). #5: `.*`/`.+` of
   `BitslicedVector`s expand a length-1 operand. Regression tests in `test/bulk.jl` and
   `test/nimber.jl`. Verified: `nimber.jl`, `bulk.jl` and `constmul.jl` pass locally on Julia 1.13.1,
-  and the #4 tests fail on the old code. Not verified: the full `Pkg.test()` with Aqua/JET, CI.
+  and the #4 tests fail on the old code; the full `Pkg.test()` (Aqua, JET included) passes,
+  2 622 620 tests. Not verified: CI, Julia 1.10.
   #6 (matmul crossovers by shape) is still open: it needs benchmarks, not a fix.
 - **R3: tower digits = binary digits, DiMuro's Lemma 1.1** (`lean/FiniteFields/NimberTower.lean`,
   note [[Rank encoding is order-preserving]], new section): for a tower of generators
