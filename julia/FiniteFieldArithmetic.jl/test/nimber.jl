@@ -165,3 +165,19 @@ end
     @test (@inferred a^7) isa GF256
     @test (@inferred GF16(3) * GF256(5)) isa GF256
 end
+
+@testset "elements of large fields (#4)" begin
+    for F in (GF2_64, GF2_128)
+        E = elements(F)
+        @test Base.IteratorSize(E) == Base.SizeUnknown()
+        @test eltype(E) == F
+        @test_throws OverflowError length(E)
+        @test collect(Iterators.take(E, 5)) == [F(i) for i in 0:4]
+        @test first(E, 3) == [F(0), F(1), F(2)]
+    end
+    for F in (GF2, GF256, GF2_16, GF2_32)
+        @test Base.IteratorSize(elements(F)) == Base.HasLength()
+        @test length(elements(F)) == 2^degree(F)
+    end
+    @test last(collect(elements(GF16))) == GF16(15)
+end

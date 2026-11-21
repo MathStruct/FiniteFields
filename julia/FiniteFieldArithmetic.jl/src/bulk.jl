@@ -13,15 +13,32 @@
 function Random.rand!(rng::Random.AbstractRNG, A::Array{F},
                       ::Random.SamplerType{F}) where {F <: BinaryFieldElement}
     T = storagetype(F)
-    GC.@preserve A Random.rand!(rng, unsafe_wrap(Array, Ptr{T}(pointer(A)), size(A)))
-    if !fills_storage(F)
-        m = max_bits(F)
-        @inbounds for i in eachindex(A)
-            A[i] = unsafe_frombits(F, bits(A[i]) & m)
+    if !storage_layout(F)                          # not a bare storage integer: element-wise
+        for i in eachindex(A)
+            @inbounds A[i] = rand(rng, F)
+        end
+        return A
+    end
+    try
+        GC.@preserve A Random.rand!(rng, unsafe_wrap(Array, Ptr{T}(pointer(A)), size(A)))
+    finally
+        # Masked even when the RNG throws part-way: whatever it wrote stays a valid element.
+        if !fills_storage(F)
+            m = max_bits(F)
+            @inbounds for i in eachindex(A)
+                A[i] = unsafe_frombits(F, bits(A[i]) & m)
+            end
         end
     end
     return A
 end
+
+# Whether an `F` is laid out exactly as its storage integer (a single field of that type), so an
+# `Array{F}` may be filled through a pointer to `storagetype(F)`. Every representation in this
+# package is; a subtype with another layout takes the element-wise path.
+storage_layout(::Type{F}) where {F <: BinaryFieldElement} =
+    isbitstype(F) && fieldcount(F) == 1 && fieldtype(F, 1) === storagetype(F) &&
+    sizeof(F) == sizeof(storagetype(F))
 
 # --- Multiplication by a constant -------------------------------------------------------------
 
@@ -38,11 +55,12 @@ it pays for long arrays only; the measurements are in `src/bulk.md`.
 struct MulBy{N <: Nimber, T <: Unsigned} <: Function
     c::N
     tab::Matrix{T}
-end
-
-function MulBy(c::N) where {K, T, N <: Nimber{K, T}}
-    tab = Matrix{T}(undef, 256, sizeof(T))
-    return MulBy{N, T}(c, mulby_tables!(tab, c))
+    # The only constructor: the table is built here from `c`, never passed in, so it always has
+    # 256 × sizeof(T) entries (`apply_bytes` reads it unchecked) and holds the products by `c`.
+    function MulBy(c::N) where {K, T, N <: Nimber{K, T}}
+        tab = Matrix{T}(undef, 256, sizeof(T))
+        return new{N, T}(c, mulby_tables!(tab, c))
+    end
 end
 
 # The byte tables of x ↦ c ⊗ x, written into `tab` (256 × sizeof(T)).
@@ -607,16 +625,27 @@ end
 
 # Element-wise operations on two bitsliced vectors stay bitsliced (`materialize` returns a
 # non-`Broadcasted` value unchanged, so `a .* b` is this result).
+# Operands of different lengths follow Julia's broadcasting rules: a length-1 operand is expanded
+# (to a bitsliced vector of its one element repeated), any other mismatch is an error.
 function Base.Broadcast.broadcasted(::typeof(*), a::BitslicedVector{N},
                                     b::BitslicedVector{N}) where {N}
+    a, b = bs_expand(a, b)
     return mul_elementwise!(similar(a), a, b)
 end
 function Base.Broadcast.broadcasted(::typeof(+), a::BitslicedVector{N},
                                     b::BitslicedVector{N}) where {N}
-    length(a) == length(b) || throw(DimensionMismatch("lengths $(length(a)) and $(length(b))"))
+    a, b = bs_expand(a, b)
     c = similar(a)
     c.planes .= a.planes .⊻ b.planes
     return c
+end
+
+function bs_expand(a::BitslicedVector{N}, b::BitslicedVector{N}) where {N}
+    la, lb = length(a), length(b)
+    la == lb && return a, b
+    la == 1 && return BitslicedVector(fill(a[1], lb)), b
+    lb == 1 && return a, BitslicedVector(fill(b[1], la))
+    throw(DimensionMismatch("arrays could not be broadcast to a common size: lengths $la and $lb"))
 end
 
 """

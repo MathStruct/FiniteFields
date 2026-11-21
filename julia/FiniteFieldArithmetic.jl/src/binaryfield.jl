@@ -38,8 +38,27 @@ characteristic(::Type{<:BinaryFieldElement}) = 2
 
 All ``2^n`` elements of `F`, in the order of their bit patterns.
 """
-elements(::Type{F}) where {F <: BinaryFieldElement} =
-    (unsafe_frombits(F, b) for b in zero(storagetype(F)):max_bits(F))
+elements(::Type{F}) where {F <: BinaryFieldElement} = Elements{F}()
+
+# The iterator of `elements`. A range `0:max_bits(F)` would be wrong from GF(2^64) on: its length
+# 2^n does not fit in an Int (nor in the storage type, where it wraps to 0). So the length is
+# reported only when it fits in an Int; above that the size is unknown (the iteration is endless
+# in practice) and `Iterators.take`/`first(_, k)` still work.
+struct Elements{F <: BinaryFieldElement} end
+Base.eltype(::Type{Elements{F}}) where {F} = F
+Base.IteratorSize(::Type{Elements{F}}) where {F} =
+    degree(F) < 8 * sizeof(Int) - 1 ? Base.HasLength() : Base.SizeUnknown()
+function Base.length(::Elements{F}) where {F}
+    n = degree(F)
+    n < 8 * sizeof(Int) - 1 || throw(OverflowError("GF(2^$n) has 2^$n elements, more than typemax(Int)"))
+    return 1 << n
+end
+Base.iterate(::Elements{F}) where {F} = (zero(F), zero(storagetype(F)))
+function Base.iterate(::Elements{F}, b) where {F}
+    b == max_bits(F) && return nothing
+    b += one(b)
+    return unsafe_frombits(F, b), b
+end
 
 # Whether the bit pattern fills the storage type (GF(256) in a UInt8 does, GF(16) does not).
 fills_storage(::Type{F}) where {F <: BinaryFieldElement} = degree(F) == 8 * sizeof(storagetype(F))

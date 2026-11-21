@@ -334,3 +334,63 @@ end
         @test A * x == matmul!(s.small, similar(x, m), A, x)
     end
 end
+
+# --- Regressions for the open issues (MathStruct/FiniteFields#2, #3, #5) ----------------------
+
+@testset "MulBy builds and owns its table (#2)" begin
+    # The table is never accepted from outside: the generated (c, tab) constructor is gone, so an
+    # undersized or wrong table cannot reach the unchecked lookups.
+    @test_throws MethodError MulBy{GF256, UInt8}(GF256(3), zeros(UInt8, 1, 1))
+    @test_throws MethodError MulBy{GF2_64, UInt64}(GF2_64(3), zeros(UInt64, 256, 8))
+    for F in LEVELS
+        m = MulBy(F(1))
+        @test size(m.tab) == (256, sizeof(FiniteFieldArithmetic.storagetype(F)))
+    end
+end
+
+# An RNG that writes all ones into a byte array and then fails.
+struct FailingRNG <: Random.AbstractRNG end
+function Random.rand!(::FailingRNG, A::Array{UInt8}, ::Random.SamplerType{UInt8})
+    fill!(A, 0xff)
+    error("RNG failure")
+end
+
+# A field element whose layout is not that of its storage integer (two bytes, storage UInt8).
+struct Tagged <: FiniteFieldArithmetic.BinaryFieldElement
+    b::UInt8
+    tag::UInt8
+end
+FiniteFieldArithmetic.bits(x::Tagged) = x.b
+FiniteFieldArithmetic.storagetype(::Type{Tagged}) = UInt8
+FiniteFieldArithmetic.degree(::Type{Tagged}) = 8
+FiniteFieldArithmetic.unsafe_frombits(::Type{Tagged}, b::UInt8) = Tagged(b, 0x5a)
+
+@testset "bulk rand! keeps elements valid (#3)" begin
+    A = fill(zero(GF4), 100)
+    @test_throws ErrorException rand!(FailingRNG(), A)
+    @test all(x -> bits(x) <= 0x03, A)                     # masked although the RNG threw
+    @test FiniteFieldArithmetic.storage_layout(GF4) && FiniteFieldArithmetic.storage_layout(GF2_128)
+    @test !FiniteFieldArithmetic.storage_layout(Tagged)
+    T = rand!(Xoshiro(1), Vector{Tagged}(undef, 50))       # element-wise: every tag is set
+    @test all(x -> x.tag == 0x5a, T)
+    @test length(unique(bits.(T))) > 10
+end
+
+@testset "BitslicedVector broadcasts expand singletons (#5), $F" for F in (GF16, GF2_32, GF2_128)
+    a, s = samples(F, 3), rand(rng, F)
+    A, S = BitslicedVector(a), BitslicedVector([s])
+    for (x, y, xv, yv) in ((A, S, a, [s]), (S, A, [s], a))     # both operand orders
+        P, Q = x .* y, x .+ y
+        @test P isa BitslicedVector{F} && Vector(P) == refmul.(xv, yv)
+        @test Q isa BitslicedVector{F} && Vector(Q) == xv .+ yv
+        C = BitslicedVector(zeros(F, 3))
+        C .= x .* y                                         # broadcast assignment
+        @test Vector(C) == refmul.(xv, yv)
+        C .= x .+ y
+        @test Vector(C) == xv .+ yv
+    end
+    @test Vector(S .* S) == [refmul(s, s)]
+    E = BitslicedVector(F[])
+    @test length(E .* S) == 0 && length(S .+ E) == 0
+    @test_throws DimensionMismatch A .+ BitslicedVector(samples(F, 2))
+end

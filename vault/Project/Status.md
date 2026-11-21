@@ -29,6 +29,17 @@ starting a backlog section the maintainer has not approved.
 
 ## Done last
 
+- **GitHub issues #2–#5 and the failing Julia CI on `main`** (2026-11-21). CI: the `Julia min`
+  job failed at `setup-julia` ("Unable to locate project file with project input: ."), because
+  `version: min` reads `[compat]` from the repository root; `julia.yml` now passes
+  `project: <package>`. #2: `MulBy` has only an inner constructor that builds its table. #3: bulk
+  `rand!` takes the pointer path only when the element type is laid out as its storage integer
+  (`storage_layout`), and masks in a `finally`. #4: `elements(F)` is an iterator (`Elements{F}`)
+  with `SizeUnknown` from GF(2^64) on (`length` throws `OverflowError`). #5: `.*`/`.+` of
+  `BitslicedVector`s expand a length-1 operand. Regression tests in `test/bulk.jl` and
+  `test/nimber.jl`. Verified: `nimber.jl`, `bulk.jl` and `constmul.jl` pass locally on Julia 1.13.1,
+  and the #4 tests fail on the old code. Not verified: the full `Pkg.test()` with Aqua/JET, CI.
+  #6 (matmul crossovers by shape) is still open: it needs benchmarks, not a fix.
 - **R3: tower digits = binary digits, DiMuro's Lemma 1.1** (`lean/FiniteFields/NimberTower.lean`,
   note [[Rank encoding is order-preserving]], new section): for a tower of generators
   $g_j = {*}2^{a_j}$ satisfying `IsTower` (rings, `X ^ u_j ≤ leastNoRoots`, each above the tower
