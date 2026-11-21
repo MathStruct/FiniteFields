@@ -52,9 +52,16 @@ for (name, G, F) in (("Conway 8 → nimber GF(256)", GF256, conway_field(8)),
                      ("nimber GF(2^64) → Conway 64", conway_field(64), GF2_64),
                      ("Conway 8 → Conway 64", conway_field(64), conway_field(8)),
                      ("Conway 32 → Conway 64", conway_field(64), conway_field(32)),
-                     ("Conway 3 → Conway 69", conway_field(69), conway_field(3)))
+                     ("Conway 3 → Conway 69", conway_field(69), conway_field(3)),
+                     ("Conway 21 → Conway 126", conway_field(126), conway_field(21)),
+                     ("Conway 63 → Conway 126", conway_field(126), conway_field(63)))
     a = rand(Xoshiro(2), F, L)
     c = Vector{G}(undef, L)
     t = @belapsed $c .= embed.($G, $a)
-    println(rpad(name, 30), ns(t), " ns")
+    if is_conway(F) && is_conway(G)          # Conway → Conway: also the Horner reference
+        h = @belapsed $c .= FiniteFieldArithmetic.embed_horner.($G, $a)
+        println(rpad(name, 30), ns(t), " ns   (Horner ", ns(h), " ns)")
+    else
+        println(rpad(name, 30), ns(t), " ns")
+    end
 end

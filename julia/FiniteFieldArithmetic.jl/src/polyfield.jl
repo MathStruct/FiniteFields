@@ -283,7 +283,8 @@ The image of `x` under the package's standard embedding of its field into `G`; d
 
 - nimber into nimber: the inclusion (the same integer);
 - Conway into Conway, ``\\mathbb{F}_{2^m} \\to \\mathbb{F}_{2^n}``: ``\\alpha_m \\mapsto
-  \\alpha_n^{(2^n-1)/(2^m-1)}`` (the compatibility of Conway polynomials);
+  \\alpha_n^{(2^n-1)/(2^m-1)}`` (the compatibility of Conway polynomials), computed through
+  ``\\mathbb{F}_{2^n} \\subset \\mathbf{On}_2`` by byte tables;
 - Conway into nimber and nimber into Conway, degree ``2^k \\le 64``: through the isomorphism
   that sends ``\\alpha_{2^k}`` to the root of ``C_{2^k}`` chosen in `polyfield.md`
   ("Nimbers and Conway fields"); these isomorphisms commute with the embeddings above;
@@ -319,6 +320,18 @@ function embed(::Type{Q}, x::P) where {P <: PolyElement, Q <: PolyElement}
         throw(ArgumentError("no standard embedding of $P into $Q (both must be Conway fields)"))
     n % m == 0 || throw(ArgumentError("GF(2^$m) does not embed into GF(2^$n): $m ∤ $n"))
     P === Q && return Q(bits(x))
+    # through GF(2^n) ⊂ On_2: the isomorphism onto nim_field(m), the inclusion, the inverse
+    # isomorphism (nimfield.jl; the isomorphisms commute with the definition below by the choice
+    # of the roots, and test/conway.jl checks agreement with embed_horner for every pair)
+    return embed(Q, embed(nim_field(Val(n)), x))
+end
+
+# The Conway embedding by its definition, α_m ↦ α_n^((2^n-1)/(2^m-1)), evaluated by Horner on the
+# coefficients of x (335 ns – 2.4 µs per element): the reference for the tests.
+function embed_horner(::Type{Q}, x::P) where {P <: PolyElement, Q <: PolyElement}
+    m, n = degree(P), degree(Q)
+    (is_conway(P) && is_conway(Q) && n % m == 0) ||
+        throw(ArgumentError("no Conway embedding of $P into $Q"))
     β = conway_generator(Q)^conway_exponent(m, n)
     # Horner on the coefficients of x, highest first
     r = zero(Q)
@@ -384,7 +397,7 @@ function embed(::Type{Q}, x::Nimber{K, T}) where {Q <: PolyElement, K, T}
     (is_conway(Q) && n % (1 << K) == 0) ||
         throw(ArgumentError("no standard embedding of $(typeof(x)) into $Q"))
     ispow2(n) || return nim_to_conway(Q, x)          # through GF(2^n) ⊂ On_2 (nimfield.jl)
-    C = conway_field(Val(1 << K))
-    y = unsafe_frombits(C, apply_bytes(conway_iso(Val(K)).to, bits(x)))
-    return embed(Q, y)
+    L = trailing_zeros(n)                            # the nimber inclusion, then φ_L⁻¹
+    y = NIMBER_LEVELS[L + 1](x)
+    return unsafe_frombits(Q, apply_bytes(conway_iso(Val(L)).to, bits(y)))
 end

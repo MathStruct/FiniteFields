@@ -113,7 +113,7 @@ orbit). For the $\varphi_k$ to commute with the embeddings (Conway $\mathbb{F}_{
 $r_k^{\,2^{2^{k-1}} + 1} = r_{k-1}$. Of the roots $r^{2^i}$ exactly those with $2^{k-1} \mid i$
 satisfy it, i.e. two, $r$ and its conjugate over level $k - 1$.
 
-**Convention (chosen in this implementation, 2026-11-20; for the maintainer to confirm):** $r_0 = 1$, and
+**Convention (chosen 2026-11-20; confirmed by the maintainer 2026-11-21):** $r_0 = 1$, and
 $r_k$ is the *smaller integer* of the two compatible roots. This gives
 
 | $k$ | field | $r_k$ |
@@ -132,7 +132,7 @@ the two.) Level 7 (GF(2^128)) has no isomorphism: there is no $C_{128}$ in the t
 
 The maps are $\mathbb{F}_2$-linear, applied by byte tables as the nimber `CLMul` change of basis
 (`PolyBasis(F, α)`). `embed(Nimber, x::Conway)` goes Conway$_{2^j}$ → nimber level $j$ → inclusion;
-`embed(Conway_n, x::Nimber)` goes nimber level $j$ → Conway$_{2^j}$ → Conway embedding when $n$
+`embed(Conway_n, x::Nimber)` goes nimber inclusion into level $\log_2 n$ → $\varphi^{-1}$ when $n$
 is a power of two, and through `nim_field(n)` otherwise (the isomorphisms with every rank-encoded
 field, `nimfield.md`, "Conway fields", which agree with these for $n = 2^k$). The
 tests check that every square commutes, that the maps are ring homomorphisms and mutually
@@ -191,9 +191,30 @@ Reading:
 - **Inverses** were slow in this first version: Euclid one bit at a time (about $2N$ steps),
   400 ns at degree 64, and Fermat (3 µs) for GHASH. Since J3 the default is Itoh–Tsujii, 81 ns
   at degree 64 and 340 ns for GHASH (`src/inversion.md`).
-- **Conway → Conway embeddings** recompute $\beta = \alpha_n^{(2^n-1)/(2^m-1)}$ (about $2n$
-  products) and then do $m$ products per element. Byte tables of the linear map, computed once
-  per pair, would make them cost what the nimber isomorphisms cost (about 2 ns). Not done.
+- **Conway → Conway embeddings** first recomputed $\beta = \alpha_n^{(2^n-1)/(2^m-1)}$ (about $2n$
+  products) and then did $m$ products per element (the rows above). Since 2026-11-21 (J1a, at the
+  maintainer's request) `embed` goes through $\mathbb{F}_{2^n} \subset \mathbf{On}_2$ instead:
+  the isomorphism onto `nim_field(m)`, the inclusion, the inverse isomorphism of degree $n$
+  (`nimfield.md`, "Conway fields"), three byte-table maps and no per-pair tables. The Horner
+  version stays as `embed_horner`, the test reference (`test/conway.jl`: agreement for every
+  table pair $m \mid n$). Timings below.
+
+### Conway → Conway through On_2
+
+The `embed` section of `bench/polyfield.jl`, one run, Julia 1.13.1, x86_64-linux (CPU reported
+as `emeraldrapids`), 2026-11-21, ns per element over 4096 elements:
+
+| `embed` | through On_2 | `embed_horner` |
+|---|---|---|
+| Conway 8 → Conway 64 | 4.6 | 387 |
+| Conway 32 → Conway 64 | 3.5 | 365 |
+| Conway 3 → Conway 69 | 26.9 | 1 519 |
+| Conway 21 → Conway 126 | 25.3 | 2 423 |
+| Conway 63 → Conway 126 | 34.1 | 2 044 |
+
+50–100 times faster. Remaining cost: three byte-table maps, one 8-bit lookup per byte of storage
+each (degree 69 and 126 are stored in a `UInt128`, so 16 lookups of 16 bytes per map). The
+nimber isomorphisms on the same run: 0.19–0.22 ns (degree 8), 2.2–2.3 ns (degree 64).
 - During development the first version took **2.4 µs per product**: DispatchDoctor's `@stable`
   sees an argument of type `Type{P}` only as `DataType` and then checks the return type at
   runtime on every call. Helpers inside `@stable` take elements (or `Val`s), not types; JET

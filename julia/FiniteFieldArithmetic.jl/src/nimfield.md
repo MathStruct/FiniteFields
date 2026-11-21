@@ -54,8 +54,8 @@ the $\psi_n$ commute with the Conway embeddings ($\alpha_m \mapsto \alpha_n^{(2^
 and the inclusions of $\mathbf{On}_2$ exactly when $\rho_n^{(2^n-1)/(2^m-1)} = \rho_m$ for all
 $m \mid n$.
 
-**Rule (2026-11-21; extends the provisional nimber convention (a) of Status.md, for the
-maintainer to confirm):** for each $n$ in Lübeck's table, in increasing order, $\rho_n$ is the
+**Rule (2026-11-21; extends the nimber convention of `polyfield.md`; confirmed by the
+maintainer 2026-11-21, "Confirmed"):** for each $n$ in Lübeck's table, in increasing order, $\rho_n$ is the
 root of $C_n$ compatible with every $\rho_m$, $m \mid n$, $m < n$, of **least rank** (least ordinal).
 For $n = 2^k$ rank = nimber value and only the $\rho_{2^j}$ constrain it, so $\rho_{2^k} = r_k$ of
 `polyfield.md`: the nimber–Conway isomorphisms are the same maps. The rule depends only on the
@@ -82,6 +82,8 @@ $\rho_{2^k} = r_k$.
 - `embed(conway_field(n), x)` for $x$ in `nim_field(m)` (a `Nim` or a `Nimber`), $m \mid n$: the
   inclusion into `nim_field(n)`, then $\psi_n^{-1}$. For $n$ not a power of two this replaces the
   old route of a nimber source (nimber → Conway$_{2^j}$ → Horner embedding).
+- `embed(conway_field(n), x::conway_field(m))` is also computed this way: $\psi_n^{-1} \circ$
+  inclusion $\circ\, \psi_m$ (`polyfield.md`).
 - No implicit `==` or promotion between the representations (decision (b)).
 
 Tests (`test/nimfield.jl`, "Conway fields"): the root conditions above; $\psi_n$ is a ring
@@ -141,8 +143,8 @@ Reading:
   nimbers): an expectation, not implemented; the J8 bulk operations are nimber-only so far.
 - The Conway ↔ Nim isomorphisms are one byte-table map (one per 8 bits of storage): 0.6 ns at 12
   bits, 10–11 ns at 127. A mixed embedding adds the On_2 inclusion (Nim 21 → Conway 126: two
-  16-byte maps, 22 ns). Conway → Conway through On_2 would be three such maps, about 30 ns at
-  degree 126 against 2.4 µs for the Horner embedding now: an expectation, not implemented (J1a).
+  16-byte maps, 22 ns). Conway → Conway `embed` now uses these maps too (J1a; timings in
+  `polyfield.md`); the Horner row above is `embed_horner`, the test reference.
 - `minimal_degree` squares up to $N$ times and `hash` calls it (and `reduce_field`): fine for
   small $N$, 1.7–1.8 µs at $N = 126$. A Frobenius-power test per maximal divisor (byte tables of
   $x \mapsto x^{2^d}$) would bring it to a few table maps: an expectation, not implemented.

@@ -30,13 +30,22 @@ starting a backlog section the maintainer has not approved.
 
 ## Done last
 
+- **J1a: Conway → Conway `embed` through On_2** (2026-11-21, maintainer: "Confirmed, and yes, wire
+  Conway → Conway through On_2!"): $\psi_n^{-1} \circ$ inclusion $\circ\, \psi_m$, three
+  byte-table maps; 3.5–34 ns per element against 365 ns – 2.4 µs for the Horner embedding
+  (`src/polyfield.md`). The Horner code is kept as `embed_horner`, the test reference
+  (agreement for every table pair $m \mid n$). Nimber → Conway of degree $2^k$ is now the
+  nimber inclusion plus one map. Verified: full `Pkg.test()` passes (2 634 078 tests, Aqua,
+  JET). Not verified: CI, Julia 1.10.
+  The root rule for the Conway ↔ rank isomorphisms and decision 0(a) are confirmed (below).
+
 - **J10: `embed` between `nim_field` and the Conway fields** (2026-11-21; `src/nimfield.jl`, note
   `src/nimfield.md`, "Conway fields"; data `src/nim_conway_roots.jl` from
   `research/nimber_closure/conway_roots.jl`). Isomorphisms `conway_field(n)` ≅ `nim_field(n)` for
   all 113 table degrees: $\alpha_n \mapsto \rho_n$, the root of $C_n$ in
   $\mathbb{F}_{2^n} \subset \mathbf{On}_2$ compatible with every $\rho_m$ ($m \mid n$) and of least
   rank. That reproduces the provisional nimber convention (a) for $n = 2^k$ (so the nimber maps
-  are unchanged) and extends it; it needs your confirmation together with (a). Number of
+  are unchanged) and extends it; confirmed by the maintainer. Number of
   compatible roots found = $n / \operatorname{lcm}\{m \mid n, m < n\}$ for every $n$, as predicted.
   `embed(nim_field(n), x::Conway_m)` and `embed(Conway_n, x::Nim/Nimber)` for $m \mid n$, by
   byte tables; Nimber → Conway of non-power-of-two degree now goes through `nim_field(n)` too.
@@ -152,9 +161,9 @@ MathStruct. Details in git and the Backlog's *Done*.
 
 ## Next
 
-Within the approved J1a (Backlog, "J1a — Representations, remaining"): byte-table Conway →
-Conway embeddings, table strategies for small Conway fields, bulk operations for `PolyElement`
-can go ahead. Two parts need a decision first: **pseudo-Conway polynomials** for $n = 128$ and the
+Within the approved J1a (Backlog, "J1a — Representations, remaining"): table strategies for small
+Conway fields, bulk operations for `PolyElement` can go ahead (Conway → Conway embeddings by
+byte tables: done). Two parts need a decision first: **pseudo-Conway polynomials** for $n = 128$ and the
 other missing degrees (not canonical: which construction?), and **isomorphisms between AES/GHASH
 and Conway fields** (one of $n$, or all). Within J8b only ARM `PMULL` and GPU kernels remain
 (not doable in this container).
@@ -169,6 +178,10 @@ in the scalar GF(2^16) `LazyMulBy` loop the size of the global `NIM256_MUL` tabl
 every element.
 
 ## Decisions in force (maintainer, 2026-11-19)
+
+- (2026-11-21, "Confirmed") Conway ↔ rank-encoded isomorphisms: $\alpha_n \mapsto$ the root of $C_n$
+  in $\mathbb{F}_{2^n} \subset \mathbf{On}_2$ compatible with all $\alpha_m$, $m \mid n$, of least
+  rank; for $n = 2^k$ the smaller-integer root $r_k$ (former open decision 0(a)).
 
 - Purpose: theory, cryptanalysis, and learners built on finite fields; no cryptographic
   implementations, constant time not a goal.
@@ -199,14 +212,12 @@ every element.
 ## Open questions for the maintainer
 
 00. **Next:** within the approved J10, faster `minimal_degree`/`hash` and bulk operations for
-   `Nim` remain (Backlog). Within J1a, Conway → Conway embeddings can now be three byte-table maps
-   through $\mathbf{On}_2$ (approved, not wired in). Please confirm the least-rank rule for the
-   Conway roots ("Done last") along with decision 0(a).
+   `Nim` remain (Backlog). Within J1a: table strategies for small Conway fields, bulk operations
+   for `PolyElement`; pseudo-Conway polynomials and AES/GHASH isomorphisms need your decision.
    Not approved: Lean proofs of the concrete relations ($\omega^3 = 2$, Lenstra's $\alpha_u$);
    J9b for Conway fields.
 0. **J1a decisions taken provisionally (2026-11-21), please confirm or change:**
-   (a) the nimber ↔ Conway isomorphism sends $\alpha_{2^k}$ to the *smaller integer* of the two
-   compatible roots ($r_3 =$ `0x61` in GF(256); table in `src/polyfield.md`); (b) no implicit
+   (a) *confirmed 2026-11-21, see "Decisions in force"*; (b) no implicit
    promotion or `==` between fields: maps only through `embed`; (c) names `PolyElement`,
    `poly_field`, `conway_field`, `embed`, `GF256_AES`, `GF2_128_GHASH`; (d) the Conway data is
    Lübeck's, taken from the GPL-3 `sagemath/conway-polynomials` mirror (provenance and sha256 in

@@ -327,6 +327,19 @@ end
     end
     @test embed(conway_field(8), conway_field(8)(0x1b)) === conway_field(8)(0x1b)
     @test_throws ArgumentError embed(conway_field(8), conway_field(3)(1))     # 3 ∤ 8
+    # `embed` goes through On_2 (three byte-table maps); the reference is the definition,
+    # α_m ↦ α_n^((2^n-1)/(2^m-1)) by Horner, for every table pair m | n (also above 72)
+    for n in conway_degrees(), m in conway_degrees()
+        (m < n && n % m == 0) || continue
+        Fm, Fn = conway_field(m), conway_field(n)
+        @test embed(Fn, conway_generator(Fm)) == FiniteFieldArithmetic.embed_horner(Fn, conway_generator(Fm))
+        for _ in 1:(n <= 72 ? 8 : 3)
+            x = rand(rng, Fm)
+            @test embed(Fn, x) == FiniteFieldArithmetic.embed_horner(Fn, x)
+        end
+    end
+    @test (@inferred embed(conway_field(Val(126)), conway_field(Val(21))(5))) isa conway_field(126)
+    @test (@inferred embed(conway_field(Val(64)), conway_field(Val(8))(5))) isa conway_field(64)
 end
 
 # --- Nimbers and Conway fields ------------------------------------------------------------------

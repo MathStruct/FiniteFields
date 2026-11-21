@@ -97,10 +97,6 @@ Nothing open. Proposed, not approved: Lean proofs that the concrete towers of R1
     others below it), compatible with the table; not canonical, so the construction needs the
     maintainer's choice;
   - **isomorphisms between AES/GHASH and the Conway fields** (there are $n$; which one, or all);
-  - **Conway → Conway embeddings by byte tables** per pair (now 335 ns – 1.5 µs per element,
-    the nimber isomorphisms 0.2–1.9 ns); since J10's Conway isomorphisms this can be
-    $\psi_n^{-1} \circ$ (inclusion of $\mathbf{On}_2$) $\circ\, \psi_m$, three byte-table maps
-    (tested to agree with the Horner embedding; not yet wired in);
   - **table strategies** for small Conway fields (products 2.9 ns against 0.4 for nimber
     GF(256); inverses 14 ns with Itoh–Tsujii against 0.3);
   - bulk operations (`MulBy`, matrix products) for `PolyElement`;
@@ -170,6 +166,10 @@ No `sorry` exists yet. Each row: file, declaration, note, date added.
   the lexicographic tower-digit order, and echelon bases computed with tower digits give an
   order-preserving rank (`elem_lt_of_rank_lt`). Not part of R3 (not approved): proving `IsTower`
   for the concrete generators (DiMuro Thm 3.1, Lenstra's $\alpha_u$, `leastNoRoots_omega0`).
+- **J1a — Conway → Conway embeddings by byte tables** (maintainer 2026-11-21: "wire Conway →
+  Conway through On_2!"; done 2026-11-21): $\psi_n^{-1} \circ$ (inclusion of $\mathbf{On}_2$)
+  $\circ\, \psi_m$; the Horner embedding kept as `embed_horner`, the test reference. Timings in
+  `src/polyfield.md`.
 - **J10 — `embed` between the rank-encoded and the Conway fields** (approved 2026-11-21: "Yes, go
   ahead with the J10 embed!"; done 2026-11-21): the isomorphisms `conway_field(n)` ≅
   `nim_field(n)` for all 113 table degrees, $\alpha_n \mapsto$ the compatible root of least rank
