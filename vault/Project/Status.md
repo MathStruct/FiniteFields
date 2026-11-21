@@ -42,7 +42,9 @@ starting a backlog section the maintainer has not approved.
   byte tables; Nimber → Conway of non-power-of-two degree now goes through `nim_field(n)` too.
   Verified: full `Pkg.test()` passes (2 631 022 tests, Aqua, JET incl. `@test_opt` on the new
   paths): root conditions recomputed for every $n$, homomorphisms, inverse maps, bijective for
-  $n \le 12$, all commuting squares for table pairs $m \mid n$. Not verified: CI, Julia 1.10.
+  $n \le 12$, all commuting squares for table pairs $m \mid n$. Measured: 0.6 ns (degree 12) to 11 ns
+  (degree 127) per isomorphism, against 2.4 µs for the Horner Conway embedding 21 → 126
+  (`src/nimfield.md`). Not verified: CI, Julia 1.10.
 
 - **GitHub issues #2–#5 and the failing Julia CI on `main`** (2026-11-21). CI: the `Julia min`
   job failed at `setup-julia` ("Unable to locate project file with project input: ."), because

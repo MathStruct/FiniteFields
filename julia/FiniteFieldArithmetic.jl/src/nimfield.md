@@ -102,7 +102,9 @@ $g$ and all inclusion matrices) when `research/` is present; printing; `@inferre
 ## Measurements
 
 `bench/nimfield.jl`, one run, Julia 1.13.1, x86_64-linux, CPU reported as `emeraldrapids`
-(a different VM from earlier runs, which reported `graniterapids`), 2026-11-21. Throughput over
+(a different VM from earlier runs, which reported `graniterapids`), 2026-11-21; the Conway
+`embed` rows from a later run of the same script the same day (its other rows agreed within a
+few percent, e.g. GF(2^126) `hash` 1 839 vs 1 815 ns). Throughput over
 4096 random elements / latency of a dependent chain, ns per element.
 
 | field | mul thr | mul lat | inv thr | inv lat |
@@ -120,6 +122,12 @@ $g$ and all inclusion matrices) when `research/` is present; printing; `@inferre
 |---|---|
 | `embed` GF(8) → GF(2^12), GF(16) → GF(2^12) | 0.44, 0.40 |
 | `embed` GF(2^21) → GF(2^126) | 9.0 |
+| `embed` Conway ↔ Nim, GF(2^12) (to / from Nim) | 0.59 / 0.63 |
+| `embed` Conway ↔ Nim, GF(2^63) | 2.3 / 2.4 |
+| `embed` Conway ↔ Nim, GF(2^127) | 11.1 / 9.7 |
+| `embed` Conway 21 → Nim 126, Nim 21 → Conway 126 | 9.7, 21.7 |
+| `embed` GF16 → Conway 12, GF256 → Conway 24 (through `nim_field(n)`) | 1.95, 2.6 |
+| `embed` Conway 21 → Conway 126 (Horner, for comparison) | 2 396 |
 | `minimal_degree` / `hash`, GF(2^12) | 72 / 208 |
 | `minimal_degree` / `hash`, GF(2^126) | 1 656 / 1 815 |
 
@@ -131,6 +139,10 @@ Reading:
   1.2–1.5 times nimber GF(2^128). Inverses convert only once, so they are 6–36% above Conway.
 - Bulk work could stay in the internal basis and convert at the boundary (as `CLMulMatMul` does for
   nimbers): an expectation, not implemented; the J8 bulk operations are nimber-only so far.
+- The Conway ↔ Nim isomorphisms are one byte-table map (one per 8 bits of storage): 0.6 ns at 12
+  bits, 10–11 ns at 127. A mixed embedding adds the On_2 inclusion (Nim 21 → Conway 126: two
+  16-byte maps, 22 ns). Conway → Conway through On_2 would be three such maps, about 30 ns at
+  degree 126 against 2.4 µs for the Horner embedding now: an expectation, not implemented (J1a).
 - `minimal_degree` squares up to $N$ times and `hash` calls it (and `reduce_field`): fine for
   small $N$, 1.7–1.8 µs at $N = 126$. A Frobenius-power test per maximal divisor (byte tables of
   $x \mapsto x^{2^d}$) would bring it to a few table maps: an expectation, not implemented.
