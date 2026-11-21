@@ -162,6 +162,85 @@ end
     end
 end
 
+@testset "Conway fields: the roots α_n in On_2" begin
+    # For every Conway degree n, the image of α_n in GF(2^n) ⊂ On_2 is a root of C_n, compatible
+    # with the image of α_m for every m | n, and of least rank among the compatible roots; for
+    # n = 2^k it is the root r_k of polyfield.md.
+    image(n) = embed(nim_field(n), conway_generator(conway_field(n)))
+    for n in conway_degrees()
+        F = nim_field(n)
+        r = image(n)
+        low = UInt128(FiniteFieldArithmetic.field_modulus(conway_field(n)))
+        @test iszero(r^n + sum((isodd(low >> i) ? r^i : zero(F)) for i in 0:(n - 1)))   # C_n(r) = 0
+        divs = [m for m in conway_degrees() if m < n && n % m == 0]
+        compatible(s) = all(m -> s^FiniteFieldArithmetic.conway_exponent(m, n) == embed(F, image(m)), divs)
+        @test compatible(r)
+        orbit = accumulate((s, _) -> s * s, 1:n; init = r)            # r^2, r^4, …, r^(2^n) = r
+        @test last(orbit) == r
+        @test all(s -> !compatible(s) || bits(s) >= bits(r), orbit)
+        if ispow2(n)
+            @test bits(r) == bits(FiniteFieldArithmetic.CONWAY_NIMBER_ROOTS[trailing_zeros(n) + 1])
+        end
+    end
+end
+
+@testset "Conway fields: embed to and from nim_field" begin
+    conway_nonpow2 = [n for n in conway_degrees() if !ispow2(n)]
+    # isomorphisms conway_field(n) ≅ nim_field(n): ring homomorphisms, mutually inverse
+    for n in conway_nonpow2
+        C, F = conway_field(n), nim_field(n)
+        for _ in 1:8
+            x, y = rand(rng, C), rand(rng, C)
+            @test embed(F, x * y) == embed(F, x) * embed(F, y)
+            @test embed(F, x + y) == embed(F, x) + embed(F, y)
+            @test embed(C, embed(F, x)) == x
+            u = rand(rng, F)
+            @test embed(F, embed(C, u)) == u
+        end
+        @test embed(F, one(C)) == one(F)
+        @test embed(F, zero(C)) == zero(F)
+        @test embed(C, one(F)) == one(C)
+    end
+    for n in filter(<=(12), conway_nonpow2)                            # bijective
+        @test length(Set(bits(embed(nim_field(n), x)) for x in elements(conway_field(n)))) == 2^n
+    end
+    # the squares commute: Conway embedding, then the isomorphism = the isomorphism, then the
+    # inclusion of On_2 (for all table pairs m | n, sources Conway, Nim and Nimber)
+    for n in conway_degrees(), m in conway_degrees()
+        (m < n && n % m == 0) || continue
+        Cm, Cn, Fm, Fn = conway_field(m), conway_field(n), nim_field(m), nim_field(n)
+        for _ in 1:(n <= 72 ? 4 : 2)
+            x = rand(rng, Cm)
+            @test embed(Fn, embed(Cn, x)) == embed(Fn, x)                # Conway → Nim/Nimber
+            @test embed(Fn, x) == embed(Fn, embed(Fm, x))                # through the subfield
+            u = rand(rng, Fm)
+            @test embed(Cn, u) == embed(Cn, embed(Cm, u))                # Nim/Nimber → Conway
+        end
+    end
+    # a Conway source needs only its own α_m: GF(2^31) and GF(2^3) into GF(2^93) (no C_93)
+    for m in (3, 31)
+        x, y = rand(rng, conway_field(m)), rand(rng, conway_field(m))
+        F = nim_field(93)
+        @test embed(F, x * y) == embed(F, x) * embed(F, y)
+        @test embed(F, x) == embed(F, embed(nim_field(m), x))
+    end
+    @test embed(nim_field(12), conway_field(4)(0x2)) == embed(nim_field(12), embed(GF16, conway_field(4)(0x2)))
+    # not defined: degrees that do not divide, fields outside the compatible system
+    @test_throws ArgumentError embed(nim_field(12), conway_field(5)(1))
+    @test_throws ArgumentError embed(conway_field(5), nim_field(3)(1))
+    @test_throws ArgumentError embed(nim_field(24), GF256_AES(1))
+    @test_throws ArgumentError embed(nim_field(3), poly_field(3, 0x5)(1))
+    @test_throws ArgumentError embed(poly_field(3, 0x5), nim_field(3)(1))
+    @test_throws ArgumentError embed(conway_field(3), nim_field(93)(1))
+    # no implicit equality or promotion between the representations (J1a decision (b))
+    @test conway_field(3)(1) != nim_field(3)(1)
+    for (m, n) in ((3, 12), (12, 12), (21, 126), (8, 24))
+        x = conway_field(m)(5)
+        @test (@inferred embed(nim_field(Val(n)), x)) isa nim_field(n)
+        @test (@inferred embed(conway_field(Val(n)), nim_field(Val(m))(5))) isa conway_field(n)
+    end
+end
+
 @testset "printing and type stability" begin
     @test string(nim_field(3)(5)) == "0x5"
     @test repr(nim_field(3)(5)) == "0x5 ∈ GF(2^3)"

@@ -87,8 +87,7 @@ Nothing open. Proposed, not approved: Lean proofs that the concrete towers of R1
 - **J10 — Rank-encoded fields, remaining** (approved 2026-11-21; the type is done, see *Done*):
   faster `minimal_degree`/`hash` (Frobenius-power byte tables per maximal divisor; now 1.7 µs at
   $n = 126$); bulk operations (`MulBy`, matrix products, bitsliced vectors) for `Nim`, converting
-  once at the boundary; `embed` between `Nim` and the Conway fields (now possible canonically:
-  the Conway generator is an element of $\mathbf{On}_2$).
+  once at the boundary. (`embed` between `Nim` and the Conway fields: done 2026-11-21, see *Done*.)
 - **J1a — Representations, remaining** (approved 2026-11-21; first part done, see *Done*):
   nimbers for $n = 2^k$, Conway polynomials for every $n$ (pseudo-Conway beyond the tables),
   standard polynomials (AES, GHASH, ...); selected by a type parameter; conversion maps between
@@ -99,7 +98,9 @@ Nothing open. Proposed, not approved: Lean proofs that the concrete towers of R1
     maintainer's choice;
   - **isomorphisms between AES/GHASH and the Conway fields** (there are $n$; which one, or all);
   - **Conway → Conway embeddings by byte tables** per pair (now 335 ns – 1.5 µs per element,
-    the nimber isomorphisms 0.2–1.9 ns);
+    the nimber isomorphisms 0.2–1.9 ns); since J10's Conway isomorphisms this can be
+    $\psi_n^{-1} \circ$ (inclusion of $\mathbf{On}_2$) $\circ\, \psi_m$, three byte-table maps
+    (tested to agree with the Horner embedding; not yet wired in);
   - **table strategies** for small Conway fields (products 2.9 ns against 0.4 for nimber
     GF(256); inverses 14 ns with Itoh–Tsujii against 0.3);
   - bulk operations (`MulBy`, matrix products) for `PolyElement`;
@@ -169,6 +170,12 @@ No `sorry` exists yet. Each row: file, declaration, note, date added.
   the lexicographic tower-digit order, and echelon bases computed with tower digits give an
   order-preserving rank (`elem_lt_of_rank_lt`). Not part of R3 (not approved): proving `IsTower`
   for the concrete generators (DiMuro Thm 3.1, Lenstra's $\alpha_u$, `leastNoRoots_omega0`).
+- **J10 — `embed` between the rank-encoded and the Conway fields** (approved 2026-11-21: "Yes, go
+  ahead with the J10 embed!"; done 2026-11-21): the isomorphisms `conway_field(n)` ≅
+  `nim_field(n)` for all 113 table degrees, $\alpha_n \mapsto$ the compatible root of least rank
+  (extends the nimber convention, equal to it for $2^k$); data `src/nim_conway_roots.jl` from
+  `research/nimber_closure/conway_roots.jl`; byte tables. Details in `src/nimfield.md`,
+  "Conway fields".
 - **J10 — Rank-encoded $\mathbb{F}_{2^n}$ for every $n \le 128$** (approved and done 2026-11-21):
   `nim_field(n)` (`Nimber` for $2^k$, `Nim{n, T}` otherwise), products via the internal polynomial
   basis, `embed` by the inclusions of $\mathbf{On}_2$, `==`/`hash`/promotion across all degrees,

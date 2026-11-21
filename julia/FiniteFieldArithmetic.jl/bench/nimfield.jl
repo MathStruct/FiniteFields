@@ -42,7 +42,19 @@ end
 println()
 println("embed, minimal_degree, ==, hash (per element, over $L elements)")
 for (name, G, F) in (("Nim 3 → Nim 12", nim_field(12), nim_field(3)), ("GF16 → Nim 12", nim_field(12), GF16),
-                     ("Nim 21 → Nim 126", nim_field(126), nim_field(21)))
+                     ("Nim 21 → Nim 126", nim_field(126), nim_field(21)),
+                     # Conway ↔ rank encoding: isomorphisms, and mixed embeddings
+                     ("Conway 12 → Nim 12", nim_field(12), conway_field(12)),
+                     ("Nim 12 → Conway 12", conway_field(12), nim_field(12)),
+                     ("Conway 63 → Nim 63", nim_field(63), conway_field(63)),
+                     ("Nim 63 → Conway 63", conway_field(63), nim_field(63)),
+                     ("Conway 127 → Nim 127", nim_field(127), conway_field(127)),
+                     ("Nim 127 → Conway 127", conway_field(127), nim_field(127)),
+                     ("Conway 21 → Nim 126", nim_field(126), conway_field(21)),
+                     ("Nim 21 → Conway 126", conway_field(126), nim_field(21)),
+                     ("GF16 → Conway 12", conway_field(12), GF16),
+                     ("GF256 → Conway 24", conway_field(24), GF256),
+                     ("Conway 21 → Conway 126", conway_field(126), conway_field(21)))
     a = rand(Xoshiro(2), F, L)
     c = Vector{G}(undef, L)
     t = @belapsed $c .= embed.($G, $a)

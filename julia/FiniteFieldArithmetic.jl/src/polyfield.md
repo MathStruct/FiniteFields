@@ -132,7 +132,9 @@ the two.) Level 7 (GF(2^128)) has no isomorphism: there is no $C_{128}$ in the t
 
 The maps are $\mathbb{F}_2$-linear, applied by byte tables as the nimber `CLMul` change of basis
 (`PolyBasis(F, α)`). `embed(Nimber, x::Conway)` goes Conway$_{2^j}$ → nimber level $j$ → inclusion;
-`embed(Conway_n, x::Nimber)` goes nimber level $j$ → Conway$_{2^j}$ → Conway embedding. The
+`embed(Conway_n, x::Nimber)` goes nimber level $j$ → Conway$_{2^j}$ → Conway embedding when $n$
+is a power of two, and through `nim_field(n)` otherwise (the isomorphisms with every rank-encoded
+field, `nimfield.md`, "Conway fields", which agree with these for $n = 2^k$). The
 tests check that every square commutes, that the maps are ring homomorphisms and mutually
 inverse, and bijective up to GF(2^16) (exhaustively).
 

@@ -286,7 +286,14 @@ The image of `x` under the package's standard embedding of its field into `G`; d
   \\alpha_n^{(2^n-1)/(2^m-1)}`` (the compatibility of Conway polynomials);
 - Conway into nimber and nimber into Conway, degree ``2^k \\le 64``: through the isomorphism
   that sends ``\\alpha_{2^k}`` to the root of ``C_{2^k}`` chosen in `polyfield.md`
-  ("Nimbers and Conway fields"); these isomorphisms commute with the embeddings above.
+  ("Nimbers and Conway fields"); these isomorphisms commute with the embeddings above;
+- rank-encoded ([`nim_field`](@ref)) into rank-encoded: the inclusion of ``\\mathbf{On}_2``;
+- Conway into [`nim_field`](@ref)`(n)` and back, every degree: through the isomorphism
+  `conway_field(m)` ``\\cong`` `nim_field(m)` that sends ``\\alpha_m`` to the root of ``C_m``
+  of least rank compatible with all ``\\alpha_d``, ``d \\mid m`` (`nimfield.md`, "Conway
+  fields"; for ``m = 2^k`` the nimber isomorphism above), then the inclusion of
+  ``\\mathbf{On}_2``. A Conway source needs only its own ``C_m`` (`nim_field(93)` has no Conway
+  field, but receives `conway_field(31)`); a Conway target needs ``C_n``.
 
 Throws `ArgumentError` otherwise (other polynomial bases such as [`GF256_AES`](@ref) have no
 standard embedding: there are ``n`` isomorphisms and no reason to prefer one).
@@ -376,6 +383,7 @@ function embed(::Type{Q}, x::Nimber{K, T}) where {Q <: PolyElement, K, T}
     n = degree(Q)
     (is_conway(Q) && n % (1 << K) == 0) ||
         throw(ArgumentError("no standard embedding of $(typeof(x)) into $Q"))
+    ispow2(n) || return nim_to_conway(Q, x)          # through GF(2^n) ⊂ On_2 (nimfield.jl)
     C = conway_field(Val(1 << K))
     y = unsafe_frombits(C, apply_bytes(conway_iso(Val(K)).to, bits(x)))
     return embed(Q, y)

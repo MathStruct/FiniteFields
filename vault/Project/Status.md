@@ -24,10 +24,25 @@ is the next item? Please implement!", then chose J9 when asked which) and **J1a*
 (2026-11-21: "Approve ADR-0005 and R1, go ahead with step 2"), **J10 and R2** (2026-11-21:
 "J10 & R2 approved!"), and the Lean connection to CombinatorialGames' `Nimber` (2026-11-21: "I'd
 say approved. If the proof is not in mathlib but some other lean library use it!"), **R3**
-(2026-11-21: "lean proof approved! Add it to the backlog.", then "Yes, go ahead with R3!"). Ask before
+(2026-11-21: "lean proof approved! Add it to the backlog.", then "Yes, go ahead with R3!"), and the
+**J10 `embed` with the Conway fields** (2026-11-21: "Yes, go ahead with the J10 embed!"). Ask before
 starting a backlog section the maintainer has not approved.
 
 ## Done last
+
+- **J10: `embed` between `nim_field` and the Conway fields** (2026-11-21; `src/nimfield.jl`, note
+  `src/nimfield.md`, "Conway fields"; data `src/nim_conway_roots.jl` from
+  `research/nimber_closure/conway_roots.jl`). Isomorphisms `conway_field(n)` ≅ `nim_field(n)` for
+  all 113 table degrees: $\alpha_n \mapsto \rho_n$, the root of $C_n$ in
+  $\mathbb{F}_{2^n} \subset \mathbf{On}_2$ compatible with every $\rho_m$ ($m \mid n$) and of least
+  rank. That reproduces the provisional nimber convention (a) for $n = 2^k$ (so the nimber maps
+  are unchanged) and extends it; it needs your confirmation together with (a). Number of
+  compatible roots found = $n / \operatorname{lcm}\{m \mid n, m < n\}$ for every $n$, as predicted.
+  `embed(nim_field(n), x::Conway_m)` and `embed(Conway_n, x::Nim/Nimber)` for $m \mid n$, by
+  byte tables; Nimber → Conway of non-power-of-two degree now goes through `nim_field(n)` too.
+  Verified: full `Pkg.test()` passes (2 631 022 tests, Aqua, JET incl. `@test_opt` on the new
+  paths): root conditions recomputed for every $n$, homomorphisms, inverse maps, bijective for
+  $n \le 12$, all commuting squares for table pairs $m \mid n$. Not verified: CI, Julia 1.10.
 
 - **GitHub issues #2–#5 and the failing Julia CI on `main`** (2026-11-21). CI: the `Julia min`
   job failed at `setup-julia` ("Unable to locate project file with project input: ."), because
@@ -181,8 +196,10 @@ every element.
 
 ## Open questions for the maintainer
 
-00. **Next:** within the approved J10, faster `minimal_degree`/`hash`, bulk operations for `Nim`,
-   and `embed` between `Nim` and the Conway fields remain (Backlog). R3 is done.
+00. **Next:** within the approved J10, faster `minimal_degree`/`hash` and bulk operations for
+   `Nim` remain (Backlog). Within J1a, Conway → Conway embeddings can now be three byte-table maps
+   through $\mathbf{On}_2$ (approved, not wired in). Please confirm the least-rank rule for the
+   Conway roots ("Done last") along with decision 0(a).
    Not approved: Lean proofs of the concrete relations ($\omega^3 = 2$, Lenstra's $\alpha_u$);
    J9b for Conway fields.
 0. **J1a decisions taken provisionally (2026-11-21), please confirm or change:**

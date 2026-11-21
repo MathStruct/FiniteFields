@@ -175,6 +175,74 @@ Base.promote_rule(::Type{Nim{M, S}}, ::Type{Nimber{K, T}}) where {M, S, K, T} =
 
 const NIM_EMB_COLS = Dict(k => hexcols(v, k[2]) for (k, v) in NIM_EMB)
 
+# --- Conway fields ------------------------------------------------------------------------------
+#
+# The isomorphism conway_field(n) ≅ nim_field(n) sends α_n to the root NIM_CONWAY_ROOT[n] of C_n
+# in GF(2^n) ⊂ On_2: among the roots compatible with every α_m, m | n, the one of least rank
+# (nimfield.md, "Conway fields"; for n = 2^k the root r_k of polyfield.md, so the nimber
+# isomorphisms of polyfield.jl are the same maps). Below, n is not a power of two.
+
+include("nim_conway_roots.jl")
+
+gf2_apply(cols, v) = foldl((r, i) -> isodd(v >> (i - 1)) ? r ⊻ cols[i] : r, eachindex(cols); init = zero(UInt128))
+
+# a * b mod (x^n + low) on coefficient bits, shift and add (cold: table construction only)
+function gf2_mulmod(a::UInt128, b::UInt128, n::Int, low::UInt128)
+    r = zero(UInt128)
+    top = UInt128(1) << (n - 1)
+    for _ in 1:n
+        isodd(b) && (r ⊻= a)
+        b >>= 1
+        a = iszero(a & top) ? a << 1 : ((a << 1) ⊻ low) & mask_bits(n)
+    end
+    return r
+end
+mask_bits(n::Int) = n == 128 ? typemax(UInt128) : (UInt128(1) << n) - 1
+
+# rank(α_n^i), i = 0 … n-1: the image of the Conway basis bit i in rank coordinates. The powers
+# are taken in the internal basis 1, g, …, g^(n-1) (NIM_C: ranks of g^i; NIM_LOW: minpoly of g).
+function nim_conway_cols(n::Int)
+    C = hexcols(NIM_C[n], n)
+    a = gf2_apply(gf2_inverse(C, n), NIM_CONWAY_ROOT[n])
+    cols, p = UInt128[], one(UInt128)
+    for _ in 1:n
+        push!(cols, gf2_apply(C, p))
+        p = gf2_mulmod(p, a, n, NIM_LOW[n])
+    end
+    return cols
+end
+
+# Byte tables of the isomorphism: `from` Conway bits ↦ rank bits, `to` its inverse.
+@generated function conway_nim_iso(::Val{N}) where {N}
+    T = poly_storage(N)
+    cols = nim_conway_cols(N)
+    return :((to = $(byte_tables(padimg(T, gf2_inverse(cols, N)))), from = $(byte_tables(padimg(T, cols)))))
+end
+
+no_conway_embedding(x, Q) = throw(ArgumentError("no standard embedding of $(typeof(x)) into $Q"))
+
+# Conway → nim_field: the isomorphism onto nim_field(m), then the inclusion of On_2.
+function embed(::Type{Q}, x::P) where {Q <: Nim, P <: PolyElement}
+    m, n = degree(P), degree(Q)
+    (is_conway(P) && n % m == 0) || no_conway_embedding(x, Q)
+    ispow2(m) && return embed(Q, embed(nim_field(Val(m)), x))      # through the nimber isomorphism
+    y = unsafe_frombits(nim_field(Val(m)), apply_bytes(conway_nim_iso(Val(m)).from, bits(x)))
+    return embed(Q, y)
+end
+
+# nim_field → Conway, degree n not a power of two: the inclusion into nim_field(n), then the
+# inverse isomorphism. (Nimber sources of degree 2^k | n come here too, see polyfield.jl.)
+function nim_to_conway(::Type{Q}, x::Union{Nim, Nimber}) where {Q <: PolyElement}
+    n = degree(Q)
+    y = embed(nim_field(Val(n)), x)
+    return unsafe_frombits(Q, apply_bytes(conway_nim_iso(Val(n)).to, bits(y)))
+end
+
+function embed(::Type{Q}, x::Nim{M, S}) where {Q <: PolyElement, M, S}
+    (is_conway(Q) && degree(Q) % M == 0) || no_conway_embedding(x, Q)
+    return nim_to_conway(Q, x)
+end
+
 # minimal_degree(x::Nim): the smallest d | N with x^(2^d) = x (the smallest subfield of On_2
 # containing x), by squaring in the internal polynomial basis.
 @stable default_mode = "error" begin
