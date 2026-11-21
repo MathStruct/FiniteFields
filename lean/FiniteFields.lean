@@ -1,6 +1,7 @@
 import Mathlib.Algebra.Field.ZMod
 import FiniteFields.RankEncoding
 import FiniteFields.NimberDigits
+import FiniteFields.NimberTower
 
 namespace FiniteFields
 

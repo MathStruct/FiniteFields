@@ -21,7 +21,9 @@ are intentionally aligned, and so is every other Lean dependency (below).
   `v4.36.0`, and builds against the tag unchanged, checked 2026-11-21). Used for `Nimber` (nim
   arithmetic on all ordinals) and the simplest extension theorems
   (`Nimber.IsGroup.two_opow`, `IsGroup.add_eq_of_lt`, `IsGroup.sum_lt`, `Nimber.two_opow_log_add`)
-  in `lean/FiniteFields/NimberDigits.lean`. No cache: lake builds the imported files (about 20 s).
+  in `lean/FiniteFields/NimberDigits.lean`, and `IsRing.pow_mul_eq` (from
+  `Nimber.SimplestExtension.Algebraic`) in `lean/FiniteFields/NimberTower.lean`. No cache: lake
+  builds the imported files (about 1 min).
   Move this pin together with the toolchain and mathlib.
 
 For the first specification, mathlib provides `ZMod p` and its field instance in

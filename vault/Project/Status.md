@@ -23,10 +23,25 @@ is the next item? Please implement!", then chose J9 when asked which) and **J1a*
 (2026-11-21: "Why is J3 not approved? I would say I approve it!"), **ADR-0005 and R1**
 (2026-11-21: "Approve ADR-0005 and R1, go ahead with step 2"), **J10 and R2** (2026-11-21:
 "J10 & R2 approved!"), and the Lean connection to CombinatorialGames' `Nimber` (2026-11-21: "I'd
-say approved. If the proof is not in mathlib but some other lean library use it!"). Ask before
+say approved. If the proof is not in mathlib but some other lean library use it!"), **R3**
+(2026-11-21: "lean proof approved! Add it to the backlog.", then "Yes, go ahead with R3!"). Ask before
 starting a backlog section the maintainer has not approved.
 
 ## Done last
+
+- **R3: tower digits = binary digits, DiMuro's Lemma 1.1** (`lean/FiniteFields/NimberTower.lean`,
+  note [[Rank encoding is order-preserving]], new section): for a tower of generators
+  $g_j = {*}2^{a_j}$ satisfying `IsTower` (rings, `X ^ u_j ≤ leastNoRoots`, each above the tower
+  below), the nim-monomial $g_k^{e_k} \cdots g_1^{e_1} {*}2^i$ is ${*}2^{a_k e_k + \dots + i}$
+  (`mono_eq`, via CombinatorialGames' `IsRing.pow_mul_eq`); that exponent is strictly increasing in
+  the lexicographic tower-digit order; so a basis reduced echelon for tower digits (as R1 computes)
+  gives an order-preserving rank (`elem_lt_of_rank_lt`). `isTower_F4` shows the hypotheses are
+  satisfiable. No `sorry`, standard axioms only (`#print axioms`), `lake build` passes.
+  Not formalized: that R1's concrete towers satisfy `IsTower` (DiMuro Thm 3.1, Lenstra's
+  $\alpha_u$; not approved). Checked by reading the code: R1's digit index (`On2.jl` header,
+  `rank_encoding.jl` `digit`/`topdigit`: flat index $\sum e_j \cdot \text{stride}_j$, top generator
+  largest stride, then the scalar bit) is the lexicographic order of the Lean statement.
+  Not verified: Lean CI (`lean.yml`).
 
 - **R2 on CombinatorialGames' `Nimber`** (`lean/FiniteFields/NimberDigits.lean`): binary digits of
   ordinals; nim-addition = symmetric difference of digits, ordinal order = colex of digits, and the
@@ -34,7 +49,7 @@ starting a backlog section the maintainer has not approved.
   (`nimSum_lt_of_rank_lt`); no `sorry`, standard axioms only, `lake build` passes. New Lean
   dependency CombinatorialGames `061f2c9` (last commit on v4.36.0; builds against our mathlib tag).
   Policy recorded: other Lean libraries before own definitions (`AGENTS.md`, `Lean and mathlib`).
-  Not formalized: tower digits = binary digits (DiMuro Lemma 1.1); existence of echelon bases.
+  Not formalized: existence of echelon bases (tower digits: R3, above).
   Not verified: the Lean CI run (`lean.yml`) with the new dependency.
 
 - **J10: `nim_field(n)` for every $n \le 128$** (`src/nimfield.jl`, note `src/nimfield.md`, data
@@ -44,8 +59,7 @@ starting a backlog section the maintainer has not approved.
   $\mathbf{On}_2$; `minimal_degree`/`reduce_field`. Verified: `Pkg.test()` passes (2 622 552 checks,
   Aqua, JET), including agreement with the R1 data for every degree.
 - **R2: the order-preservation proof** ([[Rank encoding is order-preserving]]) and its combinatorial
-  step in Lean (`lean/FiniteFields/RankEncoding.lean`, no `sorry`; `lake build` passes). Not
-  formalized: the digit structure of $\mathbf{On}_2$ (DiMuro Lemma 1.1).
+  step in Lean (`lean/FiniteFields/RankEncoding.lean`, no `sorry`; `lake build` passes).
 - **Not verified:** CI (`lean.yml`, `julia.yml`, Full CI), other Julia versions; the jldoctests.
 
 - **R1 and ADR-0005: the rank encoding of every $\mathbb{F}_{2^n} \subset \mathbf{On}_2$**
@@ -156,9 +170,7 @@ every element.
 ## Open questions for the maintainer
 
 00. **Next:** within the approved J10, faster `minimal_degree`/`hash`, bulk operations for `Nim`,
-   and `embed` between `Nim` and the Conway fields remain (Backlog). Approved, not started:
-   **R3**, the Lean proof that tower digits and binary digits give the same order (DiMuro's
-   Lemma 1.1; CombinatorialGames' `IsRing.eval_eq_of_lt` covers one step; plan in the Backlog).
+   and `embed` between `Nim` and the Conway fields remain (Backlog). R3 is done.
    Not approved: Lean proofs of the concrete relations ($\omega^3 = 2$, Lenstra's $\alpha_u$);
    J9b for Conway fields.
 0. **J1a decisions taken provisionally (2026-11-21), please confirm or change:**

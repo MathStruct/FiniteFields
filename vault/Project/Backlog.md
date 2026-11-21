@@ -78,25 +78,9 @@ comes first in every section.
 
 ## R — Research
 
-- **R3 — Lean: tower digits = binary digits (DiMuro's Lemma 1.1)** (approved 2026-11-21: "lean
-  proof approved! Add it to the backlog."). The one unformalized link between the R1 data (ranks
-  computed with tower digits: monomials in the $\chi_r$ times finite nimber bits) and
-  `nimSum_lt_of_rank_lt` (binary digits). On CombinatorialGames' `Nimber`:
-  1. one step: CombinatorialGames' `IsRing.eval_eq_of_lt` already says that for a ring $x$ with
-     `X ^ n ≤ leastNoRoots x` and $p$ of degree $< n$ with coefficients $< x$, the nim value
-     $p(x)$ is the ordinal `oeval x p` $= [x^{n-1} a_{n-1} + \dots + a_0]$ (this *is* Lemma 1.1);
-  2. nesting: iterate it over a tower $g_1 < \dots < g_k$ to get the ordinal of
-     $\sum_e g_k^{e_k} \cdots g_1^{e_1} c_e$, and prove that the ordinal order on such elements is
-     lexicographic in (monomial, then $c_e$), i.e. that the colex order on tower digits equals
-     `digits_strictMono`'s order on binary digits (a statement about ordinal arithmetic:
-     Cantor normal form base $x$ versus base 2);
-  3. conclude: for a finite subfield given in a tower, the reduced echelon basis for tower digits
-     is the one for binary digits, so `nimSum_lt_of_rank_lt` applies to the R1 ranks.
-  Hypotheses of step 1 for a concrete $x$ (that $x$ is a field and the degree of
-  `leastNoRoots x`) are *inputs* here, not proved: for $x = \omega$ that is exactly the
-  `proof_wanted leastNoRoots_omega0` ($\omega^3 = 2$) of CombinatorialGames. Proving the
-  concrete relations (Theorem 3.1, Lenstra's $\alpha_u$, R1's 17 new values) is a separate, much
-  larger task, not part of R3 (not approved).
+Nothing open. Proposed, not approved: Lean proofs that the concrete towers of R1 satisfy
+`NimberTower.IsTower` (DiMuro Thm 3.1, Lenstra's $\alpha_u$, CombinatorialGames'
+`proof_wanted leastNoRoots_omega0`).
 
 ## J — Julia (`FiniteFieldArithmetic.jl`)
 
@@ -178,6 +162,13 @@ No `sorry` exists yet. Each row: file, declaration, note, date added.
 
 ## Done
 
+- **R3 — Tower digits = binary digits, DiMuro's Lemma 1.1** (approved and done 2026-11-21):
+  `lean/FiniteFields/NimberTower.lean`, no `sorry`. Under `IsTower` (each generator ${*}2^{a_j}$ a
+  ring with `X ^ u_j ≤ leastNoRoots`, above the tower below) a tower monomial is one binary digit
+  (`mono_eq`, via CombinatorialGames' `IsRing.pow_mul_eq`), the exponent is strictly increasing in
+  the lexicographic tower-digit order, and echelon bases computed with tower digits give an
+  order-preserving rank (`elem_lt_of_rank_lt`). Not part of R3 (not approved): proving `IsTower`
+  for the concrete generators (DiMuro Thm 3.1, Lenstra's $\alpha_u$, `leastNoRoots_omega0`).
 - **J10 — Rank-encoded $\mathbb{F}_{2^n}$ for every $n \le 128$** (approved and done 2026-11-21):
   `nim_field(n)` (`Nimber` for $2^k$, `Nim{n, T}` otherwise), products via the internal polynomial
   basis, `embed` by the inclusions of $\mathbf{On}_2$, `==`/`hash`/promotion across all degrees,
@@ -187,7 +178,7 @@ No `sorry` exists yet. Each row: file, declaration, note, date added.
   ([[Rank encoding is order-preserving]]); formalized in Lean without `sorry`, on
   CombinatorialGames' `Nimber` (`lean/FiniteFields/RankEncoding.lean`,
   `lean/FiniteFields/NimberDigits.lean`, `nimSum_lt_of_rank_lt`), with binary digits; the link to
-  the tower digits of R1 (DiMuro Lemma 1.1) not formalized.
+  the tower digits of R1 is R3.
 - **R1 — Canonical extension of the nimbers, step 2** (approved and done 2026-11-21): research
   implementation of Conway's $\mathbf{On}_2$ below $\omega^{\omega^\omega}$
   (`research/nimber_closure/`); Lenstra's $\alpha_u$ for every prime $u \le 127$ (13 reproduce
