@@ -33,6 +33,20 @@ starting a backlog section the maintainer has not approved.
 
 ## Done last
 
+- **J1a: table strategies for small polynomial-basis fields** (2026-11-22; `src/polyfield.jl`,
+  note `src/polyfield.md`, "Table strategies"; tests `test/polytables.jl`; benchmark
+  `bench/polytables.jl`). `mul`/`inverse` with `MulTable()` (product table indexed by
+  `(a << N) | b` and inverse table, degree ≤ 8) and `LogTable()` (logarithms to
+  `log_generator(F)`, the least primitive bit pattern: $\alpha_n = x$ for Conway fields, `0x03` for
+  AES; degree ≤ 16), built per field at compile time from the carry-less product. Defaults by
+  degree: `MulTable` ≤ 8, `LogTable` 9–16, `CLMul`/`ItohTsujii` above. Measured (one run):
+  products 0.3–1.2 ns against 2.6–3.7 for `CLMul`, inverses 0.3–0.8 ns against 3–34 for
+  Itoh–Tsujii; Conway GF(256) now level with nimber GF(256). `nim_field(n)`, $n \le 16$, uses the
+  tables through its internal basis (not benchmarked separately). Verified: full `Pkg.test()`
+  passes (2 636 393 tests, Aqua, JET incl. `@test_opt` on the new paths); tables exhaustive against
+  `CLMul`/`Euclid` up to degree 8 and on all inverses of Conway GF(2^16). Not verified: CI, Julia
+  1.10; the cache explanations of two latencies in the note are unprofiled.
+
 - **Pseudo-Conway fields from On_2** ([[ADR-0006 Pseudo-Conway polynomials from On2]], 2026-11-22):
   `pseudo_conway_field(n)`, `pseudo_conway_degrees()`, `is_pseudo_conway` for the 15 degrees
   missing from Lübeck's table (93 … 128). In GF(2^n) ⊂ On_2: β is the least-rank primitive
