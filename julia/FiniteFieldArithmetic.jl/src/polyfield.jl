@@ -16,7 +16,8 @@ smallest unsigned type with at least `N` bits (`N ≤ 128`).
 default representation for degrees that are not a power of two (ADR-0004). Also defined:
 [`GF256_AES`](@ref), [`GF2_128_GHASH`](@ref).
 
-Products use carry-less multiplication and Barrett reduction (`polyfield.md`); inverses use
+Products use tables up to degree 16 and carry-less multiplication with Barrett reduction above
+(`polyfield.md`, [`default_strategy`](@ref)); inverses use
 [`default_inv_strategy`](@ref) (`src/inversion.md`). Elements of different fields are never equal; maps between fields
 are explicit, through [`embed`](@ref).
 """
@@ -142,13 +143,17 @@ end
     mul(CLMul(), a::PolyElement, b::PolyElement)
 
 The product in ``\\mathbb{F}_2[x]/(f)``: carry-less multiplication (`PCLMULQDQ` where the CPU
-has it, [`has_pclmul`](@ref)) and Barrett reduction, two more carry-less products. The only
-strategy for polynomial-basis fields so far, and the one behind `*`.
+has it, [`has_pclmul`](@ref)) and Barrett reduction, two more carry-less products. The strategy
+behind `*` from degree 17 up; below, [`default_strategy`](@ref) is a table
+(`mul(MulTable(), a, b)` up to degree 8, `mul(LogTable(), a, b)` up to 16).
 """
 mul(::CLMul, ::PolyElement, ::PolyElement)
 
 
-default_strategy(::Type{<:PolyElement}) = CLMul()
+# By degree, from bench/polytables.jl (polyfield.md, "Table strategies"): the full product table
+# up to degree 8, logarithms up to 16 (3-5x the throughput of CLMul), CLMul above.
+default_strategy(::Type{<:PolyElement{N}}) where {N} =
+    N <= POLY_MULTABLE_MAX_DEGREE ? MulTable() : N <= POLY_LOGTABLE_MAX_DEGREE ? LogTable() : CLMul()
 
 # --- Table strategies for small degrees (MulTable up to degree 8, LogTable up to 16) ------------
 #

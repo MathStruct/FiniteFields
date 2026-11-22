@@ -97,8 +97,6 @@ Nothing open. Proposed, not approved: Lean proofs that the concrete towers of R1
     of 2026-11-21, approved as low priority ("I'm ok with (c) however … I do not care about
     cryptography that much"): `isomorphisms(G, F)` gives all $n$, ordered by the rank of the
     image of $x$, and `embed` uses the one of least rank;
-  - **table strategies** for small Conway fields (products 2.9 ns against 0.4 for nimber
-    GF(256); inverses 14 ns with Itoh–Tsujii against 0.3);
   - bulk operations (`MulBy`, matrix products) for `PolyElement`;
   - whether Conway fields of different degrees should promote (and compare equal) through
     `embed`, as nimbers do; that needs `hash` through the smallest subfield (J9b).
@@ -159,6 +157,12 @@ No `sorry` exists yet. Each row: file, declaration, note, date added.
 
 ## Done
 
+- **J1a — Table strategies for small polynomial-basis fields** (approved with J1a; done
+  2026-11-22): `MulTable()` (product and inverse tables, degree ≤ 8) and `LogTable()` (logarithms
+  to the least primitive element, $\alpha_n = x$ for Conway fields, degree ≤ 16) for
+  `PolyElement`; the defaults of `*` and `inv` up to degree 16 (products 3–10×, inverses 10–50×
+  faster; `nim_field(n)`, $n \le 16$, uses them too). `log_generator(F)`. Details and
+  measurements in `src/polyfield.md`, "Table strategies".
 - **R3 — Tower digits = binary digits, DiMuro's Lemma 1.1** (approved and done 2026-11-21):
   `lean/FiniteFields/NimberTower.lean`, no `sorry`. Under `IsTower` (each generator ${*}2^{a_j}$ a
   ring with `X ^ u_j ≤ leastNoRoots`, above the tower below) a tower monomial is one binary digit

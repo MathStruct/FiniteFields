@@ -4,7 +4,7 @@
 > that starts reads it after `AGENTS.md`; a session that ends updates it. Replace stale text
 > rather than appending; history belongs in git.
 
-**Last updated:** 2026-11-21, on branch **`dev-danielb`** (the working branch; pushed).
+**Last updated:** 2026-11-22, on branch **`dev-danielb`** (the working branch; pushed).
 `plan/agents-handoff` is merged into it and no longer used.
 
 ## Stage
@@ -27,7 +27,8 @@ say approved. If the proof is not in mathlib but some other lean library use it!
 (2026-11-21: "lean proof approved! Add it to the backlog.", then "Yes, go ahead with R3!"), and the
 **J10 `embed` with the Conway fields** (2026-11-21: "Yes, go ahead with the J10 embed!"), Conway →
 Conway through On_2 (2026-11-21), **pseudo-Conway fields, option B / ADR-0006** (2026-11-21: "Go
-with option B"), and option (c), the AES/GHASH isomorphisms, approved at low priority. Ask before
+with option B"), the **J1a table strategies for small degrees** (2026-11-22: "Please implement the
+next item!", taken as item 1 of the then "Next" list, within the approved J1a), and option (c), the AES/GHASH isomorphisms, approved at low priority. Ask before
 starting a backlog section the maintainer has not approved.
 
 ## Done last
@@ -179,9 +180,9 @@ MathStruct. Details in git and the Backlog's *Done*.
 
 ## Next
 
-Within the approved J1a (Backlog, "J1a — Representations, remaining"): table strategies for small
-Conway fields, bulk operations for `PolyElement` can go ahead (Conway → Conway embeddings by
-byte tables and pseudo-Conway fields: done). Approved at low priority: option (c), all $n$
+Within the approved J1a (Backlog, "J1a — Representations, remaining"): bulk operations for
+`PolyElement` can go ahead (Conway → Conway embeddings by byte tables, pseudo-Conway fields and
+table strategies for small degrees: done). Approved at low priority: option (c), all $n$
 isomorphisms between any `poly_field` (AES, GHASH) and the compatible system, with `embed`
 using the one of least rank. Within J8b only ARM `PMULL` and GPU kernels remain
 (not doable in this container).
@@ -235,8 +236,7 @@ every element.
 ## Open questions for the maintainer
 
 00. **Next:** within the approved J10, faster `minimal_degree`/`hash` and bulk operations for
-   `Nim` remain (Backlog). Within J1a: table strategies for small Conway fields, bulk operations
-   for `PolyElement`, and (low priority) the AES/GHASH isomorphisms, option (c).
+   `Nim` remain (Backlog). Within J1a: bulk operations for `PolyElement`, and (low priority) the AES/GHASH isomorphisms, option (c).
    Not approved: Lean proofs of the concrete relations ($\omega^3 = 2$, Lenstra's $\alpha_u$);
    J9b for Conway fields.
 0. **J1a decisions taken provisionally (2026-11-21), please confirm or change:**

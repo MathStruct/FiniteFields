@@ -4,8 +4,9 @@
 > `PolyElement{N, T, F}`, the **Conway fields** `conway_field(n)` from Lübeck's table (every
 > $n \le 92$ and 21 degrees above, not 128), the AES and GHASH fields, `embed` between Conway
 > fields, and isomorphisms between the Conway and nimber fields of degree $2^k \le 64$ that
-> commute with the embeddings. Products by carry-less multiplication and Barrett reduction,
-> inverses by the extended Euclidean algorithm.
+> commute with the embeddings. Products by carry-less multiplication and Barrett reduction, and
+> by tables up to degree 16 (`MulTable`, `LogTable`, the defaults there); inverses by tables up to
+> degree 16, Itoh–Tsujii above.
 
 > Sources: R. Lidl, H. Niederreiter, *Finite Fields* (2nd ed., 1997), Theorem 2.6 (subfields);
 > that $\mathbb{F}_2[x]/(f)$ is a field for irreducible $f$ is mathlib's `AdjoinRoot.instField`
@@ -19,7 +20,8 @@
 > (`AdjoinRoot f` is a field for irreducible `f`); mathlib has no Conway polynomials. Not
 > formalized here.
 > code: `src/polyfield.jl`, `src/conway_table.jl` (generated, provenance in its header).
-> tests: `test/conway.jl`. benchmark: `bench/polyfield.jl`.
+> tests: `test/conway.jl`, `test/polytables.jl`. benchmarks: `bench/polyfield.jl`,
+> `bench/polytables.jl`.
 
 ## The type
 
@@ -93,14 +95,76 @@ per type at compile time (`barrett_mu`, a `@generated` constant). The modulus is
 general (Conway polynomials are), so the sparse shift-and-fold reduction of the nimber `CLMul`
 strategy does not apply.
 
-The nimber `CLMul` strategy is the name of this one too (`mul(CLMul(), a, b)`); it is the only
-strategy for polynomial-basis fields so far. Tables for small $n$ are the obvious next one
-(see Measurements).
+The nimber `CLMul` strategy is the name of this one too (`mul(CLMul(), a, b)`); it is the default
+from degree 17 up. Below, tables are faster (next section).
+
+## Table strategies
+
+For degree $N \le 16$ (J1a, "table strategies for small Conway fields"; 2026-11-22) the nimber
+strategy names `MulTable()` and `LogTable()` also apply to polynomial-basis fields:
+
+- `mul(MulTable(), a, b)`, `inverse(MulTable(), a)`, $N \le 8$: a product table of $2^{2N}$
+  entries indexed by `(a << N) | b` (a vector, not a matrix, so no size is reloaded; 64 KiB at
+  $N = 8$) and an inverse table of $2^N$ entries.
+- `mul(LogTable(), a, b)`, `inverse(LogTable(), a)`, $N \le 16$: $ab = g^{\log a + \log b}$,
+  $a^{-1} = g^{(2^N - 1) - \log a}$, with a logarithm table of $2^N$ entries (`UInt8` up to degree
+  8, `UInt16` above) and an exponential table of $2(2^N - 1)$ entries, so that the sum of two
+  logarithms needs no reduction (384 KiB at $N = 16$); zero by a branch.
+- Above those degrees both throw `ArgumentError`.
+
+**The base $g$** (`log_generator(F)`) is the primitive element with the least bit pattern. For
+a Conway (or pseudo-Conway) field that is $x = \alpha_n$, since $x$ is primitive and the only
+smaller nonzero pattern is $1$; so the table *is* the Conway discrete logarithm, the logarithm of
+the compatible system ($\log_{\alpha_n} y = \frac{2^n-1}{2^m-1}\log_{\alpha_m} y$ for
+$y \in \mathbb{F}_{2^m}$, $m \mid n$, by the compatibility). For a field where $x$ is not
+primitive the least primitive pattern is the canonical choice: `0x03` for `GF256_AES` ($x$ has
+order 51), and likewise for the internal bases of `nim_field`. Tested: primitive, and no smaller
+pattern is (`test/polytables.jl`).
+
+The tables are built per field from the carry-less product (`clmul_pow`, never `*`, which may
+itself be a table lookup) by `@generated` functions that embed them as constants, at the first
+call; the Itoh–Tsujii tables are built the same way (`src/inversion.jl`).
+
+**Defaults** (`default_strategy`, `default_inv_strategy`, by degree): `MulTable()` up to 8,
+`LogTable()` 9 … 16, `CLMul()` / `ItohTsujii()` above. Chosen by throughput, as for the nimbers
+(J2b), from the measurements below. Since the rank-encoded fields `nim_field(n)` multiply and
+invert in their internal polynomial basis, they use these tables too for $n \le 16$.
+
+`bench/polytables.jl`, one run, Julia 1.13.1, x86_64-linux (CPU reported as `emeraldrapids`),
+2026-11-22. Throughput over 4096 random elements (`c .= mul.(s, a, b)`, `c .= inverse.(s, b)`);
+latency: chains `x = mul(s, x, y) + y`, `x = inverse(s, x) + y`. ns per element.
+
+| field | `CLMul` mul thr / lat | `MulTable` mul thr / lat | `LogTable` mul thr / lat | `ItohTsujii` inv thr / lat | `Euclid` inv thr / lat | `MulTable` inv thr / lat | `LogTable` inv thr / lat |
+|---|---|---|---|---|---|---|---|
+| Conway 2^2 | 3.65 / 7.85 | 0.34 / 2.64 | 0.65 / 0.37 | 0.34 / 0.33 | 3.54 / 3.98 | 0.28 / 0.28 | 0.50 / 0.51 |
+| Conway 2^4 | 3.15 / 7.86 | 0.34 / 2.73 | 0.84 / 3.94 | 6.49 / 15.1 | 9.97 / 11.1 | 0.36 / 0.61 | 0.52 / 1.21 |
+| Conway 2^7 | 2.63 / 7.65 | 0.36 / 2.49 | 0.77 / 3.95 | 10.9 / 26.9 | 25.1 / 16.5 | 0.34 / 1.74 | 0.50 / 3.31 |
+| Conway 2^8 | 3.65 / 8.02 | 0.35 / 5.87 | 0.79 / 3.73 | 13.7 / 41.2 | 26.8 / 16.2 | 0.36 / 2.01 | 0.52 / 3.40 |
+| AES 2^8 | 2.86 / 7.15 | 0.45 / 5.40 | 0.79 / 3.96 | 17.5 / 39.1 | 25.4 / 17.6 | 0.36 / 2.11 | 0.52 / 3.94 |
+| Conway 2^9 | 3.52 / 9.34 | – | 0.82 / 3.93 | 14.3 / 38.4 | 33.9 / 25.4 | – | 0.56 / 3.36 |
+| Conway 2^12 | 3.65 / 9.12 | – | 0.73 / 3.94 | 31.3 / 59.3 | 49.7 / 31.0 | – | 0.56 / 4.00 |
+| Conway 2^13 | 3.52 / 7.78 | – | 0.78 / 3.10 | 23.1 / 48.4 | 53.7 / 58.9 | – | 0.45 / 4.00 |
+| Conway 2^15 | 3.52 / 9.08 | – | 1.06 / 7.50 | 28.4 / 52.3 | 55.4 / 54.4 | – | 0.76 / 7.99 |
+| Conway 2^16 | 3.52 / 8.86 | – | 1.16 / 8.42 | 34.4 / 60.7 | 72.3 / 61.5 | – | 0.70 / 8.65 |
+
+(Every degree 1 … 16 was run; the rows left out lie between their neighbours. In degree 1 and 2,
+Itoh–Tsujii is almost free: the chain is empty or one squaring.) Reading:
+
+- **Products:** `MulTable` 8–10× the throughput of `CLMul` up to degree 8, `LogTable` 3–5× up to 16.
+  Latency is mixed (`MulTable` 2.1–2.7 ns at degree 1–7 and 5.9 at 8, `LogTable` 0.3–4 ns,
+  each ahead at some degrees); the throughput decides, as before. Conway GF(256) by `MulTable`,
+  0.35 ns, is now level with the nimber GF(256) (0.41 ns in the older run below, another CPU).
+- **Latency of `MulTable` at degree 8** (5.9 ns, against 2.5–2.7 at degree 3–7) is likely the
+  64 KiB table exceeding the 48 KiB L1 data cache in the random chain; not profiled.
+- **`LogTable` from degree 14 up** gets slower (latency 5.8–8.4 ns), likely as the tables
+  (96–384 KiB) leave L1 and L2 share; not profiled. Still faster than `CLMul` in both measures.
+- **Inverses:** one lookup (or two), 0.3–0.8 ns throughput, against 3–34 ns for Itoh–Tsujii and
+  4–72 ns for Euclid: 10–50×.
 
 ## Inverses
 
 Since J3 (`src/inversion.md`): `inv` uses `default_inv_strategy`, `ItohTsujii()` for every
-polynomial-basis field; `Euclid()` and `Fermat()` are available through `inverse`. (In the first
+polynomial-basis field of degree above 16, the tables below (Table strategies); `Euclid()` and `Fermat()` are available through `inverse`. (In the first
 version of J1a, `inv` was Euclid in the next wider type, and Fermat at $N = 128$.)
 
 ## Pseudo-Conway fields
@@ -209,6 +273,8 @@ GHASH field against the oracle; `embed` as above for all pairs $m \mid n \le 72$
 `PCLMULQDQ` available, 2026-11-21. Throughput: `c .= a .* b` (`inv.(b)`) over 4096 random
 elements; latency: a chain `x = x * y + y` (`x = inv(x) + y`). Nanoseconds per element. The VM's
 run-to-run noise has been up to about 40% in earlier sessions (FF-P1); single run.
+
+The table below predates the table strategies (degree ≤ 16 is faster now: Table strategies).
 
 | field | mul thr | mul lat | inv thr | inv lat |
 |---|---|---|---|---|

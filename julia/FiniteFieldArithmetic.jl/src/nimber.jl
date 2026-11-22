@@ -149,7 +149,9 @@ level(::Val{K}) where {K} = K
 The strategy behind `*` for `F`, chosen by the benchmarks in `bench/` (`src/nimber.md` and
 `src/nimber_fast.md`, "Measurements"): [`CLMul`](@ref) for GF(2^128) (it computes as
 [`MulTable`](@ref) on CPUs without `PCLMULQDQ`), [`MulTable`](@ref) for the other levels.
-`inv` has its own default, [`default_inv_strategy`](@ref).
+`inv` has its own default, [`default_inv_strategy`](@ref). For polynomial-basis fields
+([`PolyElement`](@ref)): [`MulTable`](@ref) up to degree 8, [`LogTable`](@ref) up to 16,
+[`CLMul`](@ref) above (`src/polyfield.md`, "Table strategies").
 """
 default_strategy(::Type{<:Nimber}) = MulTable()
 default_strategy(::Type{GF2_128}) = CLMul()

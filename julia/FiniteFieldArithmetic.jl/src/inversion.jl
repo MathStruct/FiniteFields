@@ -149,10 +149,13 @@ end
 
 # --- Defaults ---------------------------------------------------------------------------------
 
-# Polynomial bases: ItohTsujii, the best throughput at every degree measured (2–3× Euclid;
-# inversion.md, "Measurements"); its latency is worse than Euclid's at degree 8 and 16 only.
+# Polynomial bases: the tables of polyfield.jl up to degree 16 (MulTable to 8, LogTable to 16;
+# 10-50x ItohTsujii, polyfield.md, "Table strategies"), above that ItohTsujii, the best
+# throughput at every degree measured (2–3× Euclid; inversion.md, "Measurements").
 # Nimbers keep their norm-recursion defaults (nimber.jl, nimber_fast.jl), faster than all three.
-default_inv_strategy(::Type{<:PolyElement}) = ItohTsujii()
+default_inv_strategy(::Type{<:PolyElement{N}}) where {N} =
+    N <= POLY_MULTABLE_MAX_DEGREE ? MulTable() : N <= POLY_LOGTABLE_MAX_DEGREE ? LogTable() :
+    ItohTsujii()
 
 @stable default_mode = "error" begin
     Base.inv(a::PolyElement) = inverse(default_inv_strategy(typeof(a)), a)
