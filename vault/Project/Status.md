@@ -25,10 +25,28 @@ is the next item? Please implement!", then chose J9 when asked which) and **J1a*
 "J10 & R2 approved!"), and the Lean connection to CombinatorialGames' `Nimber` (2026-11-21: "I'd
 say approved. If the proof is not in mathlib but some other lean library use it!"), **R3**
 (2026-11-21: "lean proof approved! Add it to the backlog.", then "Yes, go ahead with R3!"), and the
-**J10 `embed` with the Conway fields** (2026-11-21: "Yes, go ahead with the J10 embed!"). Ask before
+**J10 `embed` with the Conway fields** (2026-11-21: "Yes, go ahead with the J10 embed!"), Conway →
+Conway through On_2 (2026-11-21), **pseudo-Conway fields, option B / ADR-0006** (2026-11-21: "Go
+with option B"), and option (c), the AES/GHASH isomorphisms, approved at low priority. Ask before
 starting a backlog section the maintainer has not approved.
 
 ## Done last
+
+- **Pseudo-Conway fields from On_2** ([[ADR-0006 Pseudo-Conway polynomials from On2]], 2026-11-22):
+  `pseudo_conway_field(n)`, `pseudo_conway_degrees()`, `is_pseudo_conway` for the 15 degrees
+  missing from Lübeck's table (93 … 128). In GF(2^n) ⊂ On_2: β is the least-rank primitive
+  element, $\rho_n = \beta^k$ with $k$ the least exponent prime to $2^n - 1$ whose norms are the
+  Conway generators of the subfields, and $P_n$ is the minimal polynomial of $\rho_n$. So
+  every $n \le 128$ has a polynomial-basis field with a primitive generator compatible across
+  subfields, and GF(2^128) now has an isomorphism with the nimbers. `embed` and
+  `conway_generator` treat Conway and pseudo-Conway fields alike.
+  Data `src/pseudo_conway_table.jl` from `research/nimber_closure/pseudo_conway.jl` (about 1 min;
+  Pohlig–Hellman, with Pollard rho for $2^{61} - 1$) and `mersenne_factors.py` (GNU `factor` plus
+  `sympy.isprime`). Verified: `test/pseudo_conway.jl` (1 931 tests: irreducibility, primitivity
+  with a prime list shown to exhaust $2^n - 1$, $C_m(x^e) = 0$ evaluated directly, the rule
+  recomputed in `nim_field(n)`, isomorphisms, embeddings against `embed_horner`, JET); full
+  `Pkg.test()` passes (2 636 022 tests, Aqua, JET). Not verified: CI, Julia 1.10; Lübeck's current data, which may
+  have true $C_n$ for some of these degrees (his site is not on the network allowlist).
 
 - **J1a: Conway → Conway `embed` through On_2** (2026-11-21, maintainer: "Confirmed, and yes, wire
   Conway → Conway through On_2!"): $\psi_n^{-1} \circ$ inclusion $\circ\, \psi_m$, three
@@ -163,9 +181,9 @@ MathStruct. Details in git and the Backlog's *Done*.
 
 Within the approved J1a (Backlog, "J1a — Representations, remaining"): table strategies for small
 Conway fields, bulk operations for `PolyElement` can go ahead (Conway → Conway embeddings by
-byte tables: done). Two parts need a decision first: **pseudo-Conway polynomials** for $n = 128$ and the
-other missing degrees (not canonical: which construction?), and **isomorphisms between AES/GHASH
-and Conway fields** (one of $n$, or all). Within J8b only ARM `PMULL` and GPU kernels remain
+byte tables and pseudo-Conway fields: done). Approved at low priority: option (c), all $n$
+isomorphisms between any `poly_field` (AES, GHASH) and the compatible system, with `embed`
+using the one of least rank. Within J8b only ARM `PMULL` and GPU kernels remain
 (not doable in this container).
 
 Within the approved J3 (Backlog, "J3 — remaining"): division by Euclid directly, a faster
@@ -178,6 +196,11 @@ in the scalar GF(2^16) `LazyMulBy` loop the size of the global `NIM256_MUL` tabl
 every element.
 
 ## Decisions in force (maintainer, 2026-11-19)
+
+- (2026-11-21) **Prefer the choices that give more structure over those that do not or are
+  arbitrary** ("I would like to have the choices that afford more structure, over the ones that
+  don't or are arbitrary"). Cryptography is a low priority.
+- (2026-11-21) Pseudo-Conway polynomials from On_2: [[ADR-0006 Pseudo-Conway polynomials from On2]].
 
 - (2026-11-21, "Confirmed") Conway ↔ rank-encoded isomorphisms: $\alpha_n \mapsto$ the root of $C_n$
   in $\mathbb{F}_{2^n} \subset \mathbf{On}_2$ compatible with all $\alpha_m$, $m \mid n$, of least
@@ -213,7 +236,7 @@ every element.
 
 00. **Next:** within the approved J10, faster `minimal_degree`/`hash` and bulk operations for
    `Nim` remain (Backlog). Within J1a: table strategies for small Conway fields, bulk operations
-   for `PolyElement`; pseudo-Conway polynomials and AES/GHASH isomorphisms need your decision.
+   for `PolyElement`, and (low priority) the AES/GHASH isomorphisms, option (c).
    Not approved: Lean proofs of the concrete relations ($\omega^3 = 2$, Lenstra's $\alpha_u$);
    J9b for Conway fields.
 0. **J1a decisions taken provisionally (2026-11-21), please confirm or change:**

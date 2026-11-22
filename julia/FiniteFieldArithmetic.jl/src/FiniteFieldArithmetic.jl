@@ -43,6 +43,7 @@ export characteristic, degree, elements
 export minimal_level, minimal_degree, reduce_field
 export MulBy, BitslicedVector
 export PolyElement, poly_field, conway_field, conway_degrees, conway_generator, is_conway
+export pseudo_conway_field, pseudo_conway_degrees, is_pseudo_conway
 export GF256_AES, GF2_128_GHASH, embed
 export Nim, nim_field
 

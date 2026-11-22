@@ -197,6 +197,63 @@ end
 
 const CONWAY_DEGREE_SET = BitSet(conway_degrees())
 
+# --- Pseudo-Conway fields (the degrees missing from Lübeck's table) ----------------------------
+
+include("pseudo_conway_table.jl")
+
+"""
+    pseudo_conway_degrees() -> Vector{Int}
+
+The 15 degrees ``n \\le 128`` without a Conway polynomial in the table (93, 94, 99, …, 124, 128),
+for which [`pseudo_conway_field`](@ref) is defined. Together with [`conway_degrees`](@ref) they
+are `1:128`.
+"""
+pseudo_conway_degrees() = Int[t[1] for t in PSEUDO_CONWAY_TABLE]
+
+"""
+    is_pseudo_conway(F::Type{<:BinaryFieldElement}) -> Bool
+
+Whether `F` is one of the [`pseudo_conway_field`](@ref)s.
+"""
+is_pseudo_conway(::Type{<:BinaryFieldElement}) = false
+
+"""
+    pseudo_conway_field(n::Integer)
+    pseudo_conway_field(Val(n))
+
+For a degree ``n \\le 128`` with no Conway polynomial in the table
+([`pseudo_conway_degrees`](@ref)), the field ``\\mathbb{F}_2[x]/(P_n)`` with the **pseudo-Conway
+polynomial** ``P_n`` defined from ``\\mathbf{On}_2`` (`polyfield.md`, "Pseudo-Conway fields"): in
+``\\mathbb{F}_{2^n} \\subset \\mathbf{On}_2``, ``\\beta`` is the primitive element of least rank,
+``\\rho_n = \\beta^k`` with ``k`` the least exponent prime to ``2^n - 1`` such that
+``\\rho_n^{(2^n-1)/(2^m-1)}`` is the image of ``\\alpha_m`` for every ``m \\mid n``, and ``P_n``
+is the minimal polynomial of ``\\rho_n``. So ``x`` is primitive, its norms are the Conway
+generators of the subfields (Conway's compatibility), and [`embed`](@ref) treats these fields
+exactly like the Conway fields. ``P_n`` is not the lexicographically least such polynomial, so it
+need not equal a Conway polynomial computed later; hence the separate name.
+"""
+function pseudo_conway_field end
+
+pseudo_conway_field(::Val{n}) where {n} =
+    throw(ArgumentError("no pseudo-Conway polynomial of degree $n (pseudo_conway_degrees())"))
+for (n, low) in PSEUDO_CONWAY_TABLE
+    T = poly_storage(n)
+    P = PolyElement{n, T, low % T}
+    @eval pseudo_conway_field(::Val{$n}) = $P
+    @eval is_pseudo_conway(::Type{$P}) = true
+end
+const PSEUDO_CONWAY_DEGREE_SET = BitSet(pseudo_conway_degrees())
+const PSEUDO_CONWAY_ROOT = Dict{Int, UInt128}(t[1] => t[3] for t in PSEUDO_CONWAY_TABLE)
+
+function pseudo_conway_field(n::Integer)
+    n in PSEUDO_CONWAY_DEGREE_SET ||
+        throw(ArgumentError("no pseudo-Conway polynomial of degree $n (pseudo_conway_degrees())"))
+    return pseudo_conway_field(Val(Int(n)))
+end
+
+# The fields of the compatible system: Conway and pseudo-Conway (embed, conway_generator).
+in_conway_system(::Type{F}) where {F} = is_conway(F) || is_pseudo_conway(F)
+
 function conway_field(n::Integer)
     n in CONWAY_DEGREE_SET ||
         throw(ArgumentError("no Conway polynomial of degree $n in the table (conway_degrees())"))
@@ -207,10 +264,11 @@ end
     conway_generator(F::Type{<:PolyElement}) -> F
 
 The class ``\\alpha_n`` of ``x`` in the Conway field `F` = [`conway_field`](@ref)`(n)`, a root of
-``C_n`` and a generator of the multiplicative group.
+``C_n`` and a generator of the multiplicative group; likewise for a
+[`pseudo_conway_field`](@ref)`(n)` (a root of ``P_n``).
 """
 function conway_generator(::Type{P}) where {N, T, F, P <: PolyElement{N, T, F}}
-    is_conway(P) || throw(ArgumentError("$P is not a Conway field"))
+    in_conway_system(P) || throw(ArgumentError("$P is not a Conway or pseudo-Conway field"))
     return unsafe_frombits(P, N == 1 ? F : T(2))        # in degree 1, x = F (x + F = 0)
 end
 
@@ -316,7 +374,7 @@ conway_exponent(m::Int, n::Int) = foldl((e, i) -> e | (UInt128(1) << (m * i)), 0
 
 function embed(::Type{Q}, x::P) where {P <: PolyElement, Q <: PolyElement}
     m, n = degree(P), degree(Q)
-    (is_conway(P) && is_conway(Q)) ||
+    (in_conway_system(P) && in_conway_system(Q)) ||
         throw(ArgumentError("no standard embedding of $P into $Q (both must be Conway fields)"))
     n % m == 0 || throw(ArgumentError("GF(2^$m) does not embed into GF(2^$n): $m ∤ $n"))
     P === Q && return Q(bits(x))
@@ -330,7 +388,7 @@ end
 # coefficients of x (335 ns – 2.4 µs per element): the reference for the tests.
 function embed_horner(::Type{Q}, x::P) where {P <: PolyElement, Q <: PolyElement}
     m, n = degree(P), degree(Q)
-    (is_conway(P) && is_conway(Q) && n % m == 0) ||
+    (in_conway_system(P) && in_conway_system(Q) && n % m == 0) ||
         throw(ArgumentError("no Conway embedding of $P into $Q"))
     β = conway_generator(Q)^conway_exponent(m, n)
     # Horner on the coefficients of x, highest first
@@ -349,7 +407,7 @@ end
 # exactly two satisfy it (r and its conjugate over the level below), and we take the smaller as
 # an integer (polyfield.md). r_0 = 1.
 
-const NIMBER_LEVELS = (GF2, GF4, GF16, GF256, GF2_16, GF2_32, GF2_64)
+const NIMBER_LEVELS = (GF2, GF4, GF16, GF256, GF2_16, GF2_32, GF2_64, GF2_128)
 
 function conway_nimber_root(k::Int, rprev)
     N = NIMBER_LEVELS[k + 1]
@@ -379,12 +437,15 @@ end
 # Byte tables of φ_k (`from`: Conway bits ↦ nimber bits) and φ_k⁻¹ (`to`).
 const CONWAY_NIMBER_ISO = ntuple(k -> PolyBasis(NIMBER_LEVELS[k], CONWAY_NIMBER_ROOTS[k]), 7)
 
-conway_iso(::Val{K}) where {K} = K <= 6 ? CONWAY_NIMBER_ISO[K + 1] :
-    throw(ArgumentError("no Conway polynomial of degree $(1 << K) in the table"))
+# Level 7: pseudo_conway_field(128) ≅ GF(2^128), α ↦ ρ_128 (pseudo_conway_table.jl).
+const PSEUDO_NIMBER_ISO_128 = PolyBasis(GF2_128, GF2_128(PSEUDO_CONWAY_ROOT[128]))
+
+conway_iso(::Val{K}) where {K} = K <= 6 ? CONWAY_NIMBER_ISO[K + 1] : K == 7 ? PSEUDO_NIMBER_ISO_128 :
+    throw(ArgumentError("no Conway or pseudo-Conway polynomial of degree 2^$K"))
 
 function embed(::Type{N}, x::P) where {N <: Nimber, P <: PolyElement}
     m = degree(P)
-    (is_conway(P) && ispow2(m) && m <= degree(N)) ||
+    (in_conway_system(P) && ispow2(m) && m <= degree(N)) ||
         throw(ArgumentError("no standard embedding of $P into $N"))
     K = trailing_zeros(m)
     M = NIMBER_LEVELS[K + 1]
@@ -394,7 +455,7 @@ end
 
 function embed(::Type{Q}, x::Nimber{K, T}) where {Q <: PolyElement, K, T}
     n = degree(Q)
-    (is_conway(Q) && n % (1 << K) == 0) ||
+    (in_conway_system(Q) && n % (1 << K) == 0) ||
         throw(ArgumentError("no standard embedding of $(typeof(x)) into $Q"))
     ispow2(n) || return nim_to_conway(Q, x)          # through GF(2^n) ⊂ On_2 (nimfield.jl)
     L = trailing_zeros(n)                            # the nimber inclusion, then φ_L⁻¹

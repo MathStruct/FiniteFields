@@ -93,10 +93,10 @@ Nothing open. Proposed, not approved: Lean proofs that the concrete towers of R1
   standard polynomials (AES, GHASH, ...); selected by a type parameter; conversion maps between
   them. **Decided (2026-11-19):** nimbers default, Conway secondary, the others alternatives.
   Printing always hex; the REPL adds the field when it does not fill its storage. Open:
-  - **pseudo-Conway polynomials** for the degrees missing from Lübeck's table ($n = 128$ and 14
-    others below it), compatible with the table; not canonical, so the construction needs the
-    maintainer's choice;
-  - **isomorphisms between AES/GHASH and the Conway fields** (there are $n$; which one, or all);
+  - **isomorphisms between AES/GHASH (any `poly_field`) and the compatible system**: option (c)
+    of 2026-11-21, approved as low priority ("I'm ok with (c) however … I do not care about
+    cryptography that much"): `isomorphisms(G, F)` gives all $n$, ordered by the rank of the
+    image of $x$, and `embed` uses the one of least rank;
   - **table strategies** for small Conway fields (products 2.9 ns against 0.4 for nimber
     GF(256); inverses 14 ns with Itoh–Tsujii against 0.3);
   - bulk operations (`MulBy`, matrix products) for `PolyElement`;
@@ -166,6 +166,11 @@ No `sorry` exists yet. Each row: file, declaration, note, date added.
   the lexicographic tower-digit order, and echelon bases computed with tower digits give an
   order-preserving rank (`elem_lt_of_rank_lt`). Not part of R3 (not approved): proving `IsTower`
   for the concrete generators (DiMuro Thm 3.1, Lenstra's $\alpha_u$, `leastNoRoots_omega0`).
+- **J1a — Pseudo-Conway fields from On_2** (maintainer 2026-11-21: "Go with option B";
+  [[ADR-0006 Pseudo-Conway polynomials from On2]]; done 2026-11-22): `pseudo_conway_field(n)`
+  for the 15 degrees missing from Lübeck's table. $x$ is primitive and its norms are the Conway
+  generators of the subfields. Embeddings and the isomorphism with `nim_field(n)` work as for
+  Conway fields. Data `src/pseudo_conway_table.jl` from `research/nimber_closure/pseudo_conway.jl`.
 - **J1a — Conway → Conway embeddings by byte tables** (maintainer 2026-11-21: "wire Conway →
   Conway through On_2!"; done 2026-11-21): $\psi_n^{-1} \circ$ (inclusion of $\mathbf{On}_2$)
   $\circ\, \psi_m$; the Horner embedding kept as `embed_horner`, the test reference. Timings in

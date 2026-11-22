@@ -203,7 +203,7 @@ mask_bits(n::Int) = n == 128 ? typemax(UInt128) : (UInt128(1) << n) - 1
 # are taken in the internal basis 1, g, …, g^(n-1) (NIM_C: ranks of g^i; NIM_LOW: minpoly of g).
 function nim_conway_cols(n::Int)
     C = hexcols(NIM_C[n], n)
-    a = gf2_apply(gf2_inverse(C, n), NIM_CONWAY_ROOT[n])
+    a = gf2_apply(gf2_inverse(C, n), get(() -> PSEUDO_CONWAY_ROOT[n], NIM_CONWAY_ROOT, n))
     cols, p = UInt128[], one(UInt128)
     for _ in 1:n
         push!(cols, gf2_apply(C, p))
@@ -224,7 +224,7 @@ no_conway_embedding(x, Q) = throw(ArgumentError("no standard embedding of $(type
 # Conway → nim_field: the isomorphism onto nim_field(m), then the inclusion of On_2.
 function embed(::Type{Q}, x::P) where {Q <: Nim, P <: PolyElement}
     m, n = degree(P), degree(Q)
-    (is_conway(P) && n % m == 0) || no_conway_embedding(x, Q)
+    (in_conway_system(P) && n % m == 0) || no_conway_embedding(x, Q)
     ispow2(m) && return embed(Q, embed(nim_field(Val(m)), x))      # through the nimber isomorphism
     y = unsafe_frombits(nim_field(Val(m)), apply_bytes(conway_nim_iso(Val(m)).from, bits(x)))
     return embed(Q, y)
@@ -239,7 +239,7 @@ function nim_to_conway(::Type{Q}, x::Union{Nim, Nimber}) where {Q <: PolyElement
 end
 
 function embed(::Type{Q}, x::Nim{M, S}) where {Q <: PolyElement, M, S}
-    (is_conway(Q) && degree(Q) % M == 0) || no_conway_embedding(x, Q)
+    (in_conway_system(Q) && degree(Q) % M == 0) || no_conway_embedding(x, Q)
     return nim_to_conway(Q, x)
 end
 
