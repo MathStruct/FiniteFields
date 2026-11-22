@@ -42,6 +42,17 @@ using JET, Test
         @test_opt x^7
     end
     @test_opt conway_field(Val(8))
+    # table strategies for small polynomial-basis fields (J1a)
+    for F in (conway_field(Val(4)), conway_field(Val(8)), GF256_AES, conway_field(Val(13)),
+              conway_field(Val(16)))
+        x, y = F(5), F(3)
+        @test_opt mul(LogTable(), x, y)
+        @test_opt inverse(LogTable(), x)
+        if degree(F) <= 8
+            @test_opt mul(MulTable(), x, y)
+            @test_opt inverse(MulTable(), x)
+        end
+    end
     # rank-encoded fields (J10)
     for F in (nim_field(Val(3)), nim_field(Val(12)), nim_field(Val(107)), nim_field(Val(127)))
         x, y = F(5), F(3)

@@ -135,7 +135,7 @@ end
     mul(::CLMul, a::P, b::P) where {P <: PolyElement} =
         unsafe_frombits(P, poly_mul_bits(a, b))
 
-    Base.:*(a::P, b::P) where {P <: PolyElement} = mul(CLMul(), a, b)
+    Base.:*(a::P, b::P) where {P <: PolyElement} = mul(default_strategy(P), a, b)
 end
 
 @doc """
@@ -149,6 +149,125 @@ mul(::CLMul, ::PolyElement, ::PolyElement)
 
 
 default_strategy(::Type{<:PolyElement}) = CLMul()
+
+# --- Table strategies for small degrees (MulTable up to degree 8, LogTable up to 16) ------------
+#
+# Tables per field, built at compile time from the carry-less product and embedded as constants
+# of generated code (as the Itoh–Tsujii tables, inversion.jl). MulTable: the product table as a
+# vector indexed by (a << N) | b (no matrix: its size need not be reloaded), and an inverse table.
+# LogTable: logarithms to the base of the least primitive element (x for a Conway field, so the
+# logarithm is the Conway discrete logarithm), exponentials over 2(2^N - 1) entries so that a sum
+# of two logarithms needs no reduction. polyfield.md, "Table strategies".
+
+const POLY_MULTABLE_MAX_DEGREE = 8
+const POLY_LOGTABLE_MAX_DEGREE = 16
+
+# a^e with the carry-less product (the table builders must not depend on `*`, which may use them).
+function clmul_pow(a::P, e::Integer) where {P <: PolyElement}
+    r, b = one(P), a
+    while e > 0
+        isodd(e) && (r = mul(CLMul(), r, b))
+        b = mul(CLMul(), b, b)
+        e >>= 1
+    end
+    return r
+end
+
+# The least primitive element in the order of bit patterns (cold; N ≤ 16).
+function least_primitive_bits(::Type{P}) where {N, T, F, P <: PolyElement{N, T, F}}
+    q = (1 << N) - 1
+    ps = [p for p in 2:q if q % p == 0 && all(p % d != 0 for d in 2:isqrt(p))]
+    for b in 1:q
+        g = unsafe_frombits(P, T(b))
+        all(p -> !isone(clmul_pow(g, q ÷ p)), ps) && return T(b)
+    end
+    error("$P has no primitive element: the modulus is not irreducible")
+end
+
+"""
+    log_generator(F::Type{<:PolyElement}) -> F
+
+The base of the logarithms of [`LogTable`](@ref) on `F` (degree ≤ 16): the primitive element of
+`F` with the least bit pattern. For a Conway field it is ``\\alpha_n = x``
+([`conway_generator`](@ref)); for [`GF256_AES`](@ref) it is `0x03` (``x`` has order 51 there).
+"""
+function log_generator(::Type{P}) where {N, T, F, P <: PolyElement{N, T, F}}
+    N <= POLY_LOGTABLE_MAX_DEGREE ||
+        throw(ArgumentError("LogTable: tables only up to degree $POLY_LOGTABLE_MAX_DEGREE, not $N"))
+    return unsafe_frombits(P, least_primitive_bits(P))
+end
+
+# (Element arguments, not types: see the note on @stable above.)
+@generated function poly_mul_table(::P) where {N, T, F, P <: PolyElement{N, T, F}}
+    N <= POLY_MULTABLE_MAX_DEGREE || return :(throw(ArgumentError(
+        $("MulTable: product tables only up to degree $POLY_MULTABLE_MAX_DEGREE, not $N"))))
+    q = 1 << N
+    el(b) = unsafe_frombits(P, T(b))
+    mt = T[bits(mul(CLMul(), el(a), el(b))) for a in 0:(q - 1) for b in 0:(q - 1)]  # (a << N) | b
+    it = T[a == 0 ? zero(T) : bits(clmul_pow(el(a), q - 2)) for a in 0:(q - 1)]
+    return :(($mt, $it))
+end
+
+@generated function poly_log_tables(::P) where {N, T, F, P <: PolyElement{N, T, F}}
+    N <= POLY_LOGTABLE_MAX_DEGREE || return :(throw(ArgumentError(
+        $("LogTable: tables only up to degree $POLY_LOGTABLE_MAX_DEGREE, not $N"))))
+    q = (1 << N) - 1
+    g = unsafe_frombits(P, least_primitive_bits(P))
+    L = N <= 8 ? UInt8 : UInt16
+    ex = Vector{T}(undef, 2q)
+    lg = zeros(L, q + 1)
+    x = one(P)
+    for i in 0:(2q - 1)
+        ex[i + 1] = bits(x)
+        i < q && (lg[Int(bits(x)) + 1] = L(i))
+        x = mul(CLMul(), x, g)
+    end
+    return :(($lg, $ex))
+end
+
+@stable default_mode = "error" begin
+    @inline function mul(::MulTable, a::P, b::P) where {N, T, F, P <: PolyElement{N, T, F}}
+        mt, _ = poly_mul_table(a)
+        return unsafe_frombits(P, @inbounds mt[((Int(bits(a)) << N) | Int(bits(b))) + 1])
+    end
+    @inline function inverse(::MulTable, a::P) where {N, T, F, P <: PolyElement{N, T, F}}
+        _, it = poly_mul_table(a)
+        iszero(a) && throw(DivideError())
+        return unsafe_frombits(P, @inbounds it[Int(bits(a)) + 1])
+    end
+
+    @inline function mul(::LogTable, a::P, b::P) where {N, T, F, P <: PolyElement{N, T, F}}
+        lg, ex = poly_log_tables(a)
+        (iszero(a) || iszero(b)) && return zero(P)
+        @inbounds l = Int(lg[Int(bits(a)) + 1]) + Int(lg[Int(bits(b)) + 1])
+        return unsafe_frombits(P, @inbounds ex[l + 1])
+    end
+    @inline function inverse(::LogTable, a::P) where {N, T, F, P <: PolyElement{N, T, F}}
+        lg, ex = poly_log_tables(a)
+        iszero(a) && throw(DivideError())
+        q = (1 << N) - 1                             # a^(-1) = g^(q - log a), q - log a ∈ 1:q
+        return unsafe_frombits(P, @inbounds ex[q - Int(lg[Int(bits(a)) + 1]) + 1])
+    end
+end
+
+@doc """
+    mul(MulTable(), a::PolyElement, b::PolyElement)
+    inverse(MulTable(), a::PolyElement)
+
+For a polynomial-basis field of degree ``N \\le 8``: lookup in the full product table
+(``2^{2N}`` entries, 64 KiB at ``N = 8``) and an inverse table, built per field at compile time.
+Throws `ArgumentError` above degree 8.
+""" mul(::MulTable, ::PolyElement, ::PolyElement)
+
+@doc """
+    mul(LogTable(), a::PolyElement, b::PolyElement)
+    inverse(LogTable(), a::PolyElement)
+
+For a polynomial-basis field of degree ``N \\le 16``: ``ab = g^{\\log a + \\log b}`` and
+``a^{-1} = g^{2^N - 1 - \\log a}`` with logarithm and exponential tables to the base
+``g`` = [`log_generator`](@ref)`(F)` (``\\alpha_n = x`` for Conway fields), built per field at
+compile time (384 KiB at ``N = 16``). Throws `ArgumentError` above degree 16.
+""" mul(::LogTable, ::PolyElement, ::PolyElement)
 
 # --- Constructing fields ----------------------------------------------------------------------
 
